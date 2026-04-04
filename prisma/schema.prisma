@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ClientStatus {
+  ACTIVE
+  PASSIVE
+  POTENTIAL
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  PENDING
+  DONE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clients Client[]
+  notes   Note[]
+  tasks   Task[]
+}
+
+model Client {
+  id            String       @id @default(cuid())
+  companyName   String
+  contactPerson String
+  phone         String
+  email         String
+  sector        String?
+  generalNotes  String?
+  status        ClientStatus @default(POTENTIAL)
+  userId        String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes Note[]
+  tasks Task[]
+
+  @@index([userId, companyName])
+}
+
+model Note {
+  id             String    @id @default(cuid())
+  title          String?
+  content        String
+  nextActionDate DateTime?
+  /** Dakika: hatırlatma zamanından kaç dk önce uyarı (0 = tam zamanında). */
+  remindBeforeMinutes Int?
+  color          String    @default("yellow")
+  userId         String
+  clientId       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  task   Task?
+  tags   NoteTag[]
+
+  @@index([clientId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Task {
+  id                   String       @id @default(cuid())
+  title                String
+  deadline             DateTime
+  /** Dakika: deadline'dan kaç dk önce uyarı (0 = tam zamanında). */
+  remindBeforeMinutes  Int?
+  priority             TaskPriority @default(MEDIUM)
+  status               TaskStatus   @default(PENDING)
+  /** Free text: why the task could not be completed yet (structured choices can be added later). */
+  notCompletedReason   String?
+  userId               String
+  clientId             String
+  noteId      String?      @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  note   Note?  @relation(fields: [noteId], references: [id], onDelete: SetNull)
+
+  @@index([userId, deadline, status])
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String
+  userId    String
+  createdAt DateTime  @default(now())
+  noteTags  NoteTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model NoteTag {
+  noteId String
+  tagId  String
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([tagId])
+}

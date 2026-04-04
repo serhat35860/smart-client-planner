@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ui-bg: #f7f7f5;
+  --ui-accent: #0f172a;
+  --ui-accent-contrast: #ffffff;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  @apply text-slate-800 antialiased;
+  background-color: var(--ui-bg);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+input,
+select,
+textarea {
+  @apply rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ui-accent);
+}
+
+button {
+  @apply transition touch-manipulation;
+}

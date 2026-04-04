@@ -1,0 +1,19 @@
+.next
+node_modules
+.env
+.env.local
+.env.*.local
+dist
+coverage
+*.log
+
+# Yerel SQLite (migration ile yeniden oluşur)
+prisma/dev.db
+prisma/dev.db-journal
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
