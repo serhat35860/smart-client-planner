@@ -24,6 +24,11 @@ enum TaskStatus {
   DONE
 }
 
+enum WorkspaceRole {
+  OWNER
+  MEMBER
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -32,85 +37,161 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  workspaceMember WorkspaceMember?
+  clientsCreated  Client[] @relation("ClientCreatedBy")
+  notesCreated    Note[]   @relation("NoteCreatedBy")
+  notesUpdated    Note[]   @relation("NoteUpdatedBy")
+  tasksCreated    Task[]   @relation("TaskCreatedBy")
+  tasksUpdated    Task[]   @relation("TaskUpdatedBy")
+  tagsCreated     Tag[]    @relation("TagCreatedBy")
+  noteMentions    NoteUserMention[]
+  taskMentions    TaskUserMention[]
+}
+
+/** Paylaşılan ekip alanı: müşteriler, notlar, görevler workspace’e bağlıdır. */
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members WorkspaceMember[]
   clients Client[]
   notes   Note[]
   tasks   Task[]
+  tags    Tag[]
+  invites WorkspaceInvite[]
+}
+
+/** Her kullanıcı tek bir workspace’e üyedir (MVP). */
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String        @unique
+  role        WorkspaceRole @default(MEMBER)
+  /** Pasif üye oturum açamaz ve çalışma alanına erişemez. */
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(cuid())
+  workspaceId String
+  token       String   @unique
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  createdById String
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 model Client {
-  id            String       @id @default(cuid())
-  companyName   String
-  contactPerson String
-  phone         String
-  email         String
-  sector        String?
-  generalNotes  String?
-  status        ClientStatus @default(POTENTIAL)
-  userId        String
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id              String       @id @default(cuid())
+  companyName     String
+  contactPerson   String
+  phone           String
+  /** Ek yetkili kişiler: [{ "name", "phone", "jobTitle"? }] */
+  additionalContacts Json?
+  email           String
+  sector          String?
+  generalNotes    String?
+  status          ClientStatus @default(POTENTIAL)
+  workspaceId     String
+  createdByUserId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  notes Note[]
-  tasks Task[]
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User?     @relation("ClientCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  notes     Note[]
+  tasks     Task[]
 
-  @@index([userId, companyName])
+  @@index([workspaceId, companyName])
+  @@index([createdByUserId])
 }
 
 model Note {
-  id             String    @id @default(cuid())
-  title          String?
-  content        String
-  nextActionDate DateTime?
-  /** Dakika: hatırlatma zamanından kaç dk önce uyarı (0 = tam zamanında). */
+  id                  String    @id @default(cuid())
+  title               String?
+  content             String
+  nextActionDate      DateTime?
   remindBeforeMinutes Int?
-  color          String    @default("yellow")
-  userId         String
-  clientId       String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  color               String    @default("yellow")
+  workspaceId         String
+  clientId            String?
+  createdByUserId     String?
+  updatedByUserId     String?
+  /** Ekleyen dışında en az bir kullanıcı kayıt yaptıysa true (ekleyen sonra tekrar düzenlese de kalır). */
+  editedByOtherMember Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  task   Task?
-  tags   NoteTag[]
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  client    Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User?     @relation("NoteCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User?     @relation("NoteUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  task      Task?
+  tags      NoteTag[]
+  mentions  NoteUserMention[]
 
   @@index([clientId, createdAt])
-  @@index([userId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([createdByUserId])
+  @@index([updatedByUserId])
 }
 
 model Task {
-  id                   String       @id @default(cuid())
-  title                String
-  deadline             DateTime
-  /** Dakika: deadline'dan kaç dk önce uyarı (0 = tam zamanında). */
-  remindBeforeMinutes  Int?
-  priority             TaskPriority @default(MEDIUM)
-  status               TaskStatus   @default(PENDING)
-  /** Free text: why the task could not be completed yet (structured choices can be added later). */
-  notCompletedReason   String?
-  userId               String
-  clientId             String
-  noteId      String?      @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                  String       @id @default(cuid())
+  title               String
+  deadline            DateTime
+  remindBeforeMinutes Int?
+  priority            TaskPriority @default(MEDIUM)
+  status              TaskStatus   @default(PENDING)
+  notCompletedReason  String?
+  /** Görev tamamlanırken kaydedilen gelişmeler / notlar. */
+  completionNotes     String?
+  workspaceId         String
+  clientId            String
+  noteId              String?      @unique
+  createdByUserId     String?
+  updatedByUserId     String?
+  editedByOtherMember Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  note   Note?  @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  note      Note?     @relation(fields: [noteId], references: [id], onDelete: SetNull)
+  createdBy User?     @relation("TaskCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User?     @relation("TaskUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  mentions  TaskUserMention[]
 
-  @@index([userId, deadline, status])
+  @@index([workspaceId, deadline, status])
+  @@index([createdByUserId])
+  @@index([updatedByUserId])
 }
 
 model Tag {
-  id        String    @id @default(cuid())
-  name      String
-  userId    String
-  createdAt DateTime  @default(now())
-  noteTags  NoteTag[]
+  id              String    @id @default(cuid())
+  name            String
+  workspaceId     String
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  noteTags        NoteTag[]
 
-  @@unique([userId, name])
-  @@index([userId])
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User?     @relation("TagCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@index([createdByUserId])
 }
 
 model NoteTag {
@@ -122,4 +203,28 @@ model NoteTag {
 
   @@id([noteId, tagId])
   @@index([tagId])
+}
+
+/** Not üzerinde ekip üyesi etiketleme (@mention). */
+model NoteUserMention {
+  noteId String
+  userId String
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, userId])
+  @@index([userId])
+}
+
+/** Görevde ekip üyesi etiketleme. */
+model TaskUserMention {
+  taskId String
+  userId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([userId])
 }

@@ -17,20 +17,35 @@ async function main() {
     }
   });
 
-  await prisma.task.deleteMany({ where: { userId: user.id } });
-  await prisma.note.deleteMany({ where: { userId: user.id } });
-  await prisma.client.deleteMany({ where: { userId: user.id } });
-  await prisma.tag.deleteMany({ where: { userId: user.id } });
+  let workspaceId: string;
+  const existingMember = await prisma.workspaceMember.findUnique({ where: { userId: user.id } });
+  if (existingMember) {
+    workspaceId = existingMember.workspaceId;
+  } else {
+    const ws = await prisma.workspace.create({
+      data: {
+        name: "Demo team",
+        members: { create: { userId: user.id, role: "OWNER" } }
+      }
+    });
+    workspaceId = ws.id;
+  }
+
+  await prisma.task.deleteMany({ where: { workspaceId } });
+  await prisma.note.deleteMany({ where: { workspaceId } });
+  await prisma.client.deleteMany({ where: { workspaceId } });
+  await prisma.tag.deleteMany({ where: { workspaceId } });
 
   const tags = await Promise.all(
     ["payment", "production", "complaint", "meeting", "support"].map((name) =>
-      prisma.tag.create({ data: { name, userId: user.id } })
+      prisma.tag.create({ data: { name, workspaceId, createdByUserId: user.id } })
     )
   );
 
   const clientA = await prisma.client.create({
     data: {
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       companyName: "Northwind Textiles",
       contactPerson: "Elif Kaya",
       phone: "+90 555 123 45 67",
@@ -43,7 +58,8 @@ async function main() {
 
   const clientB = await prisma.client.create({
     data: {
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       companyName: "BluePeak Logistics",
       contactPerson: "Mert Demir",
       phone: "+90 555 987 65 43",
@@ -56,7 +72,8 @@ async function main() {
 
   const note1 = await prisma.note.create({
     data: {
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       clientId: clientA.id,
       title: "Kickoff and planning",
       content: "Reviewed current workflow. Shared first draft timeline and pricing.",
@@ -70,7 +87,8 @@ async function main() {
 
   await prisma.task.create({
     data: {
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       clientId: clientA.id,
       noteId: note1.id,
       title: "Send finalized proposal",
@@ -81,7 +99,8 @@ async function main() {
 
   await prisma.note.create({
     data: {
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       clientId: clientA.id,
       title: "Payment clarification",
       content: "Client requested revised milestone payment split and invoice format.",
@@ -95,7 +114,8 @@ async function main() {
 
   await prisma.note.create({
     data: {
-      userId: user.id,
+      workspaceId,
+      createdByUserId: user.id,
       clientId: clientB.id,
       title: "Support pain points",
       content: "Discussed late feedback loops and need for weekly checkpoint.",

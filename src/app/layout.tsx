@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@/app/globals.css";
 import { I18nProvider } from "@/components/i18n-provider";
+import { UiThemeRoot } from "@/components/ui-theme-root";
 import { getServerT, resolveServerLanguage } from "@/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,10 +31,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" }
-  ],
+  themeColor: "#f7f7f5",
   colorScheme: "light"
 };
 
@@ -42,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang}>
       <body>
+        <UiThemeRoot />
         <I18nProvider initialLang={lang}>{children}</I18nProvider>
       </body>
     </html>

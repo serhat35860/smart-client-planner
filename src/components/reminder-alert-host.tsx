@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { playSoftReminderChime } from "@/lib/play-soft-chime";
@@ -37,8 +37,13 @@ function fireAtMs(atIso: string, remindBeforeMinutes: number) {
   return T - remindBeforeMinutes * 60 * 1000;
 }
 
-function dismissKey(item: AlertItem, fireMs: number) {
-  return `reminder-dismissed-${item.kind}-${item.id}-${fireMs}`;
+/** Etkinlik anı (deadline / not tarihi); kapatınca tekrar uyarı çıkmasın diye hatırlatma dakikası anahtara girmez. */
+function eventTimeMs(item: AlertItem) {
+  return new Date(item.at).getTime();
+}
+
+function dismissKey(item: AlertItem) {
+  return `reminder-dismissed-${item.kind}-${item.id}-${eventTimeMs(item)}`;
 }
 
 function soundKey(item: AlertItem, fireMs: number) {
@@ -60,8 +65,8 @@ function isSnoozed(item: AlertItem, fireMs: number, now: number): boolean {
   }
 }
 
-function stableId(item: AlertItem, fireMs: number) {
-  return `${item.kind}-${item.id}-${fireMs}`;
+function stableId(item: AlertItem) {
+  return `${item.kind}-${item.id}-${eventTimeMs(item)}`;
 }
 
 /** Eski yanıt: sadece not alanları (nextActionDate). */
@@ -107,12 +112,22 @@ function normalizePayload(raw: unknown): AlertItem[] {
   }).filter((x): x is AlertItem => x !== null);
 }
 
-function TaskReminderSnooze({ onSnooze, t }: { onSnooze: (minutes: number) => void; t: TFunction }) {
+function ReminderSnoozeRow({
+  onSnooze,
+  onMarkDone,
+  completing,
+  t
+}: {
+  onSnooze: (minutes: number) => void;
+  onMarkDone: () => void;
+  completing: boolean;
+  t: TFunction;
+}) {
   const [minutes, setMinutes] = useState(15);
 
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <label className="flex min-w-0 flex-1 flex-col gap-1">
+      <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-[13rem] sm:flex-none sm:flex-initial">
         <span className="text-xs font-medium text-slate-600">{t("task_reminder_snooze_label")}</span>
         <select
           value={minutes}
@@ -129,9 +144,18 @@ function TaskReminderSnooze({ onSnooze, t }: { onSnooze: (minutes: number) => vo
       <button
         type="button"
         onClick={() => onSnooze(minutes)}
-        className="shrink-0 rounded-lg border border-amber-400/90 bg-amber-100/80 px-3 py-1.5 text-xs font-medium text-amber-950 hover:bg-amber-200/80"
+        disabled={completing}
+        className="shrink-0 rounded-lg border border-amber-400/90 bg-amber-100/80 px-3 py-1.5 text-xs font-medium text-amber-950 hover:bg-amber-200/80 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {t("task_reminder_snooze_button")}
+      </button>
+      <button
+        type="button"
+        onClick={onMarkDone}
+        disabled={completing}
+        className="shrink-0 rounded-lg border border-emerald-500/80 bg-emerald-100/90 px-3 py-1.5 text-xs font-medium text-emerald-950 hover:bg-emerald-200/80 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {completing ? t("loading") : t("done")}
       </button>
     </div>
   );
@@ -139,9 +163,11 @@ function TaskReminderSnooze({ onSnooze, t }: { onSnooze: (minutes: number) => vo
 
 export function ReminderAlertHost() {
   const pathname = usePathname();
+  const router = useRouter();
   const { t, i18n } = useTranslation();
   const lang = appLanguageFromI18n(i18n.language);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [completingKey, setCompletingKey] = useState<string | null>(null);
   const prevIdsRef = useRef<Set<string>>(new Set());
 
   const isLogin = pathname === "/login";
@@ -160,7 +186,7 @@ export function ReminderAlertHost() {
         const F = fireAtMs(n.at, n.remindBeforeMinutes);
         const T = new Date(n.at).getTime();
         if (typeof window === "undefined") continue;
-        if (sessionStorage.getItem(dismissKey(n, F))) continue;
+        if (sessionStorage.getItem(dismissKey(n))) continue;
         if (isSnoozed(n, F, now)) continue;
         if (now < F || now > T + AFTER_EVENT_MS) continue;
         active.push(n);
@@ -171,8 +197,7 @@ export function ReminderAlertHost() {
       }
 
       const newAlert = active.some((a) => {
-        const F = fireAtMs(a.at, a.remindBeforeMinutes);
-        const id = stableId(a, F);
+        const id = stableId(a);
         return !prevIdsRef.current.has(id);
       });
 
@@ -181,7 +206,7 @@ export function ReminderAlertHost() {
         nextSoundIds.forEach((k) => sessionStorage.setItem(k, "1"));
       }
 
-      prevIdsRef.current = new Set(active.map((a) => stableId(a, fireAtMs(a.at, a.remindBeforeMinutes))));
+      prevIdsRef.current = new Set(active.map((a) => stableId(a)));
       setAlerts(active);
     } catch {
       /* ignore */
@@ -206,19 +231,18 @@ export function ReminderAlertHost() {
   }, [check, isLogin]);
 
   function dismiss(n: AlertItem) {
-    const F = fireAtMs(n.at, n.remindBeforeMinutes);
     try {
-      sessionStorage.setItem(dismissKey(n, F), "1");
+      sessionStorage.setItem(dismissKey(n), "1");
     } catch {
       /* ignore */
     }
+    const t0 = eventTimeMs(n);
     setAlerts((prev) =>
-      prev.filter((x) => !(x.kind === n.kind && x.id === n.id && fireAtMs(x.at, x.remindBeforeMinutes) === F))
+      prev.filter((x) => !(x.kind === n.kind && x.id === n.id && eventTimeMs(x) === t0))
     );
   }
 
-  function snoozeTask(item: AlertItem, minutes: number) {
-    if (item.kind !== "task") return;
+  function snoozeAlert(item: AlertItem, minutes: number) {
     const F = fireAtMs(item.at, item.remindBeforeMinutes);
     const until = Date.now() + minutes * 60 * 1000;
     try {
@@ -234,6 +258,28 @@ export function ReminderAlertHost() {
     );
   }
 
+  async function markReminderDone(item: AlertItem) {
+    const key = stableId(item);
+    setCompletingKey(key);
+    try {
+      if (item.kind === "task") {
+        const res = await fetch(`/api/tasks/${item.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "DONE" })
+        });
+        if (!res.ok) return;
+      } else {
+        const res = await fetch(`/api/notes/${item.id}/complete-reminder`, { method: "POST" });
+        if (!res.ok) return;
+      }
+      dismiss(item);
+      router.refresh();
+    } finally {
+      setCompletingKey(null);
+    }
+  }
+
   if (isLogin || alerts.length === 0) return null;
 
   return (
@@ -244,6 +290,8 @@ export function ReminderAlertHost() {
       {alerts.map((n) => {
         const F = fireAtMs(n.at, n.remindBeforeMinutes);
         const when = formatDateTime24(new Date(n.at), lang);
+        const rowKey = stableId(n);
+        const isCompleting = completingKey === rowKey;
         const preview =
           n.kind === "note"
             ? n.content.length > 160
@@ -253,7 +301,7 @@ export function ReminderAlertHost() {
         const alertTitle = n.kind === "task" ? t("task_reminder_alert_title") : t("reminder_alert_title");
         return (
           <div
-            key={stableId(n, F)}
+            key={rowKey}
             className="pointer-events-auto w-full max-w-lg rounded-2xl border border-amber-200/80 bg-amber-50/95 px-4 py-3 shadow-lg shadow-amber-900/10 backdrop-blur-sm"
           >
             <div className="flex items-start justify-between gap-2">
@@ -271,24 +319,25 @@ export function ReminderAlertHost() {
               <button
                 type="button"
                 onClick={() => dismiss(n)}
-                className="shrink-0 rounded-lg border border-amber-300/80 bg-white/80 px-2 py-1 text-xs text-slate-700 hover:bg-white"
+                disabled={isCompleting}
+                className="shrink-0 rounded-lg border border-amber-300/80 bg-white/80 px-2 py-1 text-xs text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("reminder_alert_dismiss")}
               </button>
             </div>
             <div className="mt-2 space-y-2 border-t border-amber-200/60 pt-2">
-              {n.kind === "task" ? (
-                <>
-                  <TaskReminderSnooze t={t} onSnooze={(mins) => snoozeTask(n, mins)} />
-                  <Link href="/tasks" className="inline-block text-xs font-medium text-amber-900 underline hover:no-underline">
-                    {t("reminder_alert_open_tasks")}
-                  </Link>
-                </>
-              ) : (
-                <Link href="/reminders" className="text-xs font-medium text-amber-900 underline hover:no-underline">
-                  {t("reminder_alert_open_reminders")}
-                </Link>
-              )}
+              <ReminderSnoozeRow
+                t={t}
+                completing={isCompleting}
+                onSnooze={(mins) => snoozeAlert(n, mins)}
+                onMarkDone={() => void markReminderDone(n)}
+              />
+              <Link
+                href={n.kind === "task" ? "/tasks" : "/reminders"}
+                className="inline-block text-xs font-medium text-amber-900 underline hover:no-underline"
+              >
+                {n.kind === "task" ? t("reminder_alert_open_tasks") : t("reminder_alert_open_reminders")}
+              </Link>
             </div>
           </div>
         );

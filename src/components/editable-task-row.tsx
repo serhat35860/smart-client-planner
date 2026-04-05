@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { DateTime24Input } from "@/components/datetime-24-input";
 import { RemindBeforeSelect } from "@/components/remind-before-select";
+import { CreatorUpdaterCorner } from "@/components/added-by-line";
+import { NoteMemberPicker } from "@/components/note-member-picker";
+import { TaggedMembersChips } from "@/components/tagged-members-chips";
+import { cn } from "@/lib/utils";
 import { TaskIncompleteReasonBlock, TaskPendingActions } from "@/components/task-pending-actions";
+import type { CreatorPreview, NoteMentionMember } from "@/lib/creator-preview";
 import { formatDateTime24, appLanguageFromI18n } from "@/lib/format-date";
 
 type Priority = "LOW" | "MEDIUM" | "HIGH";
@@ -18,6 +23,10 @@ export type SerializableTask = {
   notCompletedReason: string | null;
   remindBeforeMinutes: number | null;
   client: { id: string; companyName: string; contactPerson: string };
+  createdBy?: CreatorPreview | null;
+  updatedBy?: CreatorPreview | null;
+  editedByOtherMember?: boolean;
+  mentions?: NoteMentionMember[];
 };
 
 type ClientOption = { id: string; companyName: string; contactPerson: string };
@@ -33,6 +42,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
   const lang = appLanguageFromI18n(i18n.language);
   const deadlineDate = new Date(task.deadlineIso);
   const overdue = deadlineDate.getTime() < nowMs;
+  const showUpdatedCorner = Boolean(task.updatedBy && task.editedByOtherMember);
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(task.title);
@@ -42,6 +52,9 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
   const [remindBeforeMinutes, setRemindBeforeMinutes] = useState(task.remindBeforeMinutes ?? 15);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editMentionedUserIds, setEditMentionedUserIds] = useState<string[]>(() =>
+    (task.mentions ?? []).map((m) => m.userId)
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +63,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
     setPriority(task.priority);
     setClientId(task.client.id);
     setRemindBeforeMinutes(task.remindBeforeMinutes ?? 15);
+    setEditMentionedUserIds((task.mentions ?? []).map((m) => m.userId));
 
     let cancelled = false;
     void fetch("/api/clients")
@@ -60,7 +74,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
     return () => {
       cancelled = true;
     };
-  }, [open, task.id, task.title, task.deadlineIso, task.priority, task.client.id, task.remindBeforeMinutes]);
+  }, [open, task.id, task.title, task.deadlineIso, task.priority, task.client.id, task.remindBeforeMinutes, task.mentions]);
 
   useEffect(() => {
     if (!open) return;
@@ -80,7 +94,8 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
       deadline: new Date(deadline).toISOString(),
       priority,
       clientId,
-      remindBeforeMinutes
+      remindBeforeMinutes,
+      mentionedUserIds: editMentionedUserIds
     };
     const res = await fetch(`/api/tasks/${task.id}`, {
       method: "PATCH",
@@ -96,7 +111,10 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
   return (
     <>
       <article
-        className="cursor-pointer rounded-2xl bg-white p-4 shadow-sm outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]"
+        className={cn(
+          "relative cursor-pointer rounded-2xl bg-white p-4 shadow-sm outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]",
+          showUpdatedCorner && task.createdBy ? "pb-10" : showUpdatedCorner ? "pb-9" : "pb-6"
+        )}
         tabIndex={0}
         onDoubleClick={() => setOpen(true)}
         onKeyDown={(e) => {
@@ -126,6 +144,12 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
           </div>
         </div>
         {task.notCompletedReason ? <TaskIncompleteReasonBlock text={task.notCompletedReason} /> : null}
+        <TaggedMembersChips members={task.mentions ?? []} />
+        <CreatorUpdaterCorner
+          creator={task.createdBy}
+          updatedBy={task.updatedBy}
+          editedByOtherMember={task.editedByOtherMember}
+        />
       </article>
 
       {open ? (
@@ -149,6 +173,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
                 <DateTime24Input value={deadline} onChange={setDeadline} required className="w-full" />
               </div>
               <RemindBeforeSelect value={remindBeforeMinutes} onChange={setRemindBeforeMinutes} />
+              <NoteMemberPicker value={editMentionedUserIds} onChange={setEditMentionedUserIds} />
               <label className="block text-sm text-slate-700">
                 <span className="mb-1 block font-medium">{t("task_priority_label")}</span>
                 <select

@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CreatorUpdaterCorner } from "@/components/added-by-line";
+import { TaskCompletionNotesBlock } from "@/components/task-pending-actions";
 import { cn } from "@/lib/utils";
+import { TaggedMembersChips } from "@/components/tagged-members-chips";
+import type { CreatorPreview, NoteMentionMember } from "@/lib/creator-preview";
 import { appLanguageFromI18n, formatDateTime24 } from "@/lib/format-date";
 
 type Props = {
@@ -12,7 +16,12 @@ type Props = {
   clientName: string;
   deadlineIso: string;
   completedAtIso: string;
+  completionNotes?: string | null;
   articleClassName?: string;
+  createdBy?: CreatorPreview | null;
+  updatedBy?: CreatorPreview | null;
+  editedByOtherMember?: boolean;
+  mentions?: NoteMentionMember[];
 };
 
 export function RepeatCompletedTaskCard({
@@ -21,11 +30,17 @@ export function RepeatCompletedTaskCard({
   clientName,
   deadlineIso,
   completedAtIso,
-  articleClassName
+  completionNotes = null,
+  articleClassName,
+  createdBy,
+  updatedBy,
+  editedByOtherMember = false,
+  mentions = []
 }: Props) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const lang = appLanguageFromI18n(i18n.language);
+  const showUpdatedCorner = Boolean(updatedBy && editedByOtherMember);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +86,13 @@ export function RepeatCompletedTaskCard({
         title={t("repeat_task_double_click")}
         aria-label={t("repeat_task_double_click")}
       >
-        <article className={cn("rounded-2xl bg-white p-4", articleClassName ?? "shadow-sm")}>
+        <article
+          className={cn(
+            "relative rounded-2xl bg-white p-4",
+            showUpdatedCorner && createdBy ? "pb-11" : showUpdatedCorner ? "pb-9" : "pb-7",
+            articleClassName ?? "shadow-sm"
+          )}
+        >
           <h3 className="font-semibold text-slate-900">{title}</h3>
           <p className="mt-1 text-sm text-slate-600">
             {clientName} · {formatDateTime24(deadline, lang)}
@@ -79,6 +100,13 @@ export function RepeatCompletedTaskCard({
           <p className="mt-2 text-xs text-slate-500">
             {t("task_completed_on")}: {formatDateTime24(completedAt, lang)}
           </p>
+          {completionNotes?.trim() ? <TaskCompletionNotesBlock text={completionNotes.trim()} /> : null}
+          <TaggedMembersChips members={mentions} />
+          <CreatorUpdaterCorner
+            creator={createdBy}
+            updatedBy={updatedBy}
+            editedByOtherMember={editedByOtherMember}
+          />
         </article>
       </div>
 

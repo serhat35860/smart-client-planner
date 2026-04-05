@@ -1,29 +1,25 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { NOTE_PALETTE } from "@/lib/note-palette";
+import { cn } from "@/lib/utils";
 
-export const NOTE_PALETTE = [
-  { id: "yellow", hex: "#fff9c4" },
-  { id: "blue", hex: "#dbeafe" },
-  { id: "green", hex: "#dcfce7" },
-  { id: "pink", hex: "#ffe4e6" },
-  { id: "orange", hex: "#ffedd5" },
-  { id: "purple", hex: "#ede9fe" },
-  { id: "gray", hex: "#e2e8f0" }
-] as const;
+export { NOTE_PALETTE } from "@/lib/note-palette";
 
 type Props = {
   color: string;
   setColor: (v: string) => void;
   customColor: string;
   setCustomColor: (v: string) => void;
+  /** Başlık satırları (ör. modallarda büyük harf). */
+  headingClassName?: string;
 };
 
-export function NoteBackgroundPicker({ color, setColor, customColor, setCustomColor }: Props) {
+export function NoteBackgroundPicker({ color, setColor, customColor, setCustomColor, headingClassName }: Props) {
   const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-2">
-      <p className="mb-2 text-xs text-slate-600">{t("note_background")}</p>
+      <p className={cn("mb-2 text-xs font-semibold text-slate-900", headingClassName)}>{t("note_background")}</p>
       <div className="mb-2 flex flex-wrap gap-2">
         {NOTE_PALETTE.map((item) => (
           <button
@@ -44,7 +40,7 @@ export function NoteBackgroundPicker({ color, setColor, customColor, setCustomCo
         />
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-slate-500">{t("custom_color")}</span>
+        <span className={cn("text-xs font-semibold text-slate-900", headingClassName)}>{t("custom_color")}</span>
         <input
           type="color"
           value={customColor}

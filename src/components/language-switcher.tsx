@@ -8,7 +8,10 @@ import { defaultLanguage, isSupportedLanguage, type AppLanguage } from "@/i18n/s
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
   const router = useRouter();
-  const [lang, setLang] = useState<AppLanguage>(defaultLanguage);
+  const [lang, setLang] = useState<AppLanguage>(() => {
+    const code = i18n.language?.split("-")[0];
+    return isSupportedLanguage(code) ? code : defaultLanguage;
+  });
 
   useEffect(() => {
     const current = i18n.language?.split("-")[0];

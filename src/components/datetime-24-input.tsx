@@ -49,10 +49,12 @@ type Props = {
   required?: boolean;
   className?: string;
   id?: string;
+  /** Alan etiketleri (ör. hızlı işlem modallarında büyük harf). */
+  labelClassName?: string;
 };
 
 /** Tarih + saat; saat ve dakika yalnızca 24 saatlik (00–23, 00–59) açılır listeler. */
-export function DateTime24Input({ value, onChange, required, className, id }: Props) {
+export function DateTime24Input({ value, onChange, required, className, id, labelClassName }: Props) {
   const { t } = useTranslation();
   const { d, h, m } = useMemo(() => parseDateTimeLocalValue(value), [value]);
 
@@ -75,11 +77,11 @@ export function DateTime24Input({ value, onChange, required, className, id }: Pr
   return (
     <div className={cn("flex flex-wrap items-end gap-3", className)} id={id}>
       <label className="flex min-w-[10rem] flex-1 flex-col gap-1">
-        <span className="text-xs font-medium text-slate-600">{t("datetime24_date")}</span>
+        <span className={cn("text-xs font-semibold text-slate-900", labelClassName)}>{t("datetime24_date")}</span>
         <input type="date" value={d} onChange={(e) => setDate(e.target.value)} required={required} className="w-full" />
       </label>
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-slate-600">{t("datetime24_time_24h")}</span>
+        <span className={cn("text-xs font-semibold text-slate-900", labelClassName)}>{t("datetime24_time_24h")}</span>
         <div className="flex items-center gap-1">
           <select
             value={h}

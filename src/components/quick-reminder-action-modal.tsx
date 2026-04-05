@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { QuickNoteForm } from "@/components/quick-note-form";
+import { MentionAtCombo } from "@/components/mention-at-combo";
+import { useWorkspaceClientsQuery } from "@/hooks/use-workspace-clients-query";
 
 type ApiClient = {
   id: string;
@@ -19,27 +21,22 @@ export function QuickReminderActionModal() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("reminder_choose");
   const [selectedClient, setSelectedClient] = useState<ApiClient | null>(null);
-  const [clients, setClients] = useState<ApiClient[]>([]);
-  const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const loadClients = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch("/api/clients");
-    if (res.ok) setClients(((await res.json()) as ApiClient[]) ?? []);
-    setLoading(false);
-  }, []);
+  const pickerActive = open && step === "pick";
+  const {
+    q,
+    setQ,
+    setMentionUserId,
+    setMentionLabel,
+    mentionLabel,
+    clients,
+    loading
+  } = useWorkspaceClientsQuery(pickerActive);
 
   const closeAll = useCallback(() => {
     setOpen(false);
     setStep("reminder_choose");
     setSelectedClient(null);
-    setQ("");
   }, []);
-
-  useEffect(() => {
-    if (open && step === "pick") void loadClients();
-  }, [open, step, loadClients]);
 
   useEffect(() => {
     if (!open) return;
@@ -53,18 +50,8 @@ export function QuickReminderActionModal() {
   function openModal() {
     setStep("reminder_choose");
     setSelectedClient(null);
-    setQ("");
     setOpen(true);
   }
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return clients;
-    return clients.filter(
-      (c) =>
-        c.companyName.toLowerCase().includes(needle) || c.contactPerson.toLowerCase().includes(needle)
-    );
-  }, [clients, q]);
 
   function onClientPicked(c: ApiClient) {
     setSelectedClient(c);
@@ -87,10 +74,12 @@ export function QuickReminderActionModal() {
       <button
         type="button"
         onClick={openModal}
-        className="w-full rounded-2xl bg-slate-900 p-5 text-left text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+        className="flex h-full min-h-[5.25rem] w-full flex-col rounded-2xl bg-slate-900 p-3 text-left text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
       >
-        <p className="text-sm text-slate-300">{t("quick_action")}</p>
-        <p className="mt-1 text-lg font-semibold">{t("add_reminder_fast")}</p>
+        <p className="shrink-0 text-xs font-normal uppercase tracking-wide leading-tight text-slate-100">{t("quick_action")}</p>
+        <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-end">
+          <p className="text-base font-bold uppercase tracking-wide leading-snug text-white">{t("add_reminder_fast")}</p>
+        </div>
       </button>
 
       {open ? (
@@ -119,7 +108,6 @@ export function QuickReminderActionModal() {
                     type="button"
                     onClick={() => {
                       setSelectedClient(null);
-                      setQ("");
                       setStep("pick");
                     }}
                     className="rounded-2xl border-2 border-slate-200 p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-slate-50"
@@ -144,28 +132,39 @@ export function QuickReminderActionModal() {
                     type="button"
                     onClick={() => {
                       setSelectedClient(null);
-                      setQ("");
                       setStep("reminder_choose");
                     }}
                     className="text-sm text-slate-600 hover:underline"
                   >
                     ← {t("back")}
                   </button>
-                  <input
-                    type="search"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
+                  <MentionAtCombo
+                    listboxId="quick-reminder-modal-mention-list"
+                    textValue={q}
+                    onTextChange={setQ}
+                    mentionLabel={mentionLabel}
+                    onPickMention={(id, label) => {
+                      setMentionUserId(id);
+                      setMentionLabel(label);
+                      setQ("");
+                    }}
+                    onClearMention={() => {
+                      setMentionUserId(null);
+                      setMentionLabel(null);
+                    }}
                     placeholder={t("search_clients_placeholder")}
+                    chipHintKey="search_mention_filter_hint_clients_list"
                     className="w-full"
+                    inputClassName="w-full"
                     autoFocus
                   />
                   {loading ? (
                     <p className="text-center text-sm text-slate-500">{t("loading")}</p>
-                  ) : filtered.length === 0 ? (
+                  ) : clients.length === 0 ? (
                     <p className="text-center text-sm text-slate-500">{t("no_clients_found")}</p>
                   ) : (
                     <ul className="space-y-1">
-                      {filtered.map((c) => (
+                      {clients.map((c) => (
                         <li key={c.id}>
                           <button
                             type="button"

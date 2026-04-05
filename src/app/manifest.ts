@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 /** PWA: mobil ve masaüstü tarayıcıda “Uygulama yükle” / Ana ekrana ekle */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Akıllı Müşteri Planlayıcı",
-    short_name: "Müşteri Plan",
+    name: "Smart Planner",
+    short_name: "Smart Planner",
     description: "Yapışkan not mantığında müşteri etkileşim planlayıcısı ve mini CRM.",
     start_url: "/",
     scope: "/",

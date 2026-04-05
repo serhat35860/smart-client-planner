@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
@@ -24,9 +25,14 @@ export default function LoginPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
     setLoading(false);
     if (!res.ok) {
-      setError(t("invalid_credentials"));
+      if (res.status === 403 && data.error === "workspace_inactive") {
+        setError(t("workspace_inactive_login"));
+      } else {
+        setError(t("invalid_credentials"));
+      }
       return;
     }
     router.push("/dashboard");
@@ -70,6 +76,11 @@ export default function LoginPage() {
         <button disabled={loading} className="w-full rounded-xl bg-slate-900 px-4 py-2 text-white hover:bg-slate-700">
           {loading ? t("logging_in") : t("login")}
         </button>
+        <p className="mt-4 text-center text-sm text-slate-600">
+          <Link href="/register" className="text-slate-900 underline hover:no-underline">
+            {t("register_cta_from_login")}
+          </Link>
+        </p>
       </form>
     </div>
   );

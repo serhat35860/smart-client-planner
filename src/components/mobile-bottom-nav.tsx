@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { CalendarClock, LayoutDashboard, ListTodo, Search, Users } from "lucide-react";
+import { CalendarClock, LayoutDashboard, ListTodo, Search, Users, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -11,6 +11,7 @@ const items = [
   { href: "/clients", key: "clients" as const, Icon: Users },
   { href: "/tasks", key: "tasks" as const, Icon: ListTodo },
   { href: "/reminders", key: "reminders" as const, Icon: CalendarClock },
+  { href: "/team", key: "team" as const, Icon: UsersRound },
   { href: "/search", key: "search" as const, Icon: Search }
 ];
 

@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  canAddExtraContact,
+  ClientExtraContactRows,
+  PrimaryContactWithPlus,
+  type ExtraContact
+} from "@/components/client-extra-contact-rows";
 import { cn } from "@/lib/utils";
 
 export function NewClientForm({
@@ -25,15 +31,34 @@ export function NewClientForm({
     generalNotes: "",
     status: "POTENTIAL"
   });
+  const [extraContacts, setExtraContacts] = useState<ExtraContact[]>([]);
   const [loading, setLoading] = useState(false);
+
+  function addExtraContact() {
+    if (!canAddExtraContact(extraContacts.length)) return;
+    setExtraContacts((prev) => [...prev, { name: "", phone: "", jobTitle: "" }]);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    const additionalContacts = extraContacts
+      .map((x) => {
+        const jt = x.jobTitle.trim();
+        return {
+          name: x.name.trim(),
+          phone: x.phone.trim(),
+          ...(jt ? { jobTitle: jt } : {})
+        };
+      })
+      .filter((x) => x.name && x.phone);
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form)
+      body: JSON.stringify({
+        ...form,
+        additionalContacts
+      })
     });
     setLoading(false);
     if (!res.ok) return;
@@ -47,6 +72,7 @@ export function NewClientForm({
       generalNotes: "",
       status: "POTENTIAL"
     });
+    setExtraContacts([]);
     onCreated?.(created);
     onSaved?.();
   }
@@ -60,13 +86,15 @@ export function NewClientForm({
         onChange={(e) => setForm({ ...form, companyName: e.target.value })}
         required
       />
-      <input
-        placeholder={t("contact_person")}
-        value={form.contactPerson}
-        onChange={(e) => setForm({ ...form, contactPerson: e.target.value })}
-        required
+      <PrimaryContactWithPlus
+        contactPerson={form.contactPerson}
+        phone={form.phone}
+        onContactPerson={(v) => setForm({ ...form, contactPerson: v })}
+        onPhone={(v) => setForm({ ...form, phone: v })}
+        onAddExtra={addExtraContact}
+        addDisabled={!canAddExtraContact(extraContacts.length)}
       />
-      <input placeholder={t("phone")} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+      <ClientExtraContactRows contacts={extraContacts} onChange={setExtraContacts} />
       <input placeholder={t("email")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
       <input placeholder={t("sector")} value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
       <textarea

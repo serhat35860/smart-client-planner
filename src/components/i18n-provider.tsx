@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { I18nextProvider } from "react-i18next";
-import i18n from "@/i18n/client";
+import i18n, { syncI18nLanguage } from "@/i18n/client";
 import { defaultLanguage, isSupportedLanguage, type AppLanguage } from "@/i18n/settings";
 
 function writeLang(lang: AppLanguage) {
@@ -11,16 +11,21 @@ function writeLang(lang: AppLanguage) {
 }
 
 export function I18nProvider({ initialLang, children }: { initialLang: AppLanguage; children: React.ReactNode }) {
-  useEffect(() => {
-    const fromLocalStorage = localStorage.getItem("lang");
-    const language: AppLanguage = isSupportedLanguage(fromLocalStorage)
-      ? fromLocalStorage
-      : isSupportedLanguage(initialLang)
-        ? initialLang
-        : defaultLanguage;
-    i18n.changeLanguage(language);
-    writeLang(language);
-  }, [initialLang]);
+  const resolved = isSupportedLanguage(initialLang) ? initialLang : defaultLanguage;
+  syncI18nLanguage(resolved);
+
+  useLayoutEffect(() => {
+    try {
+      const fromLocalStorage = localStorage.getItem("lang");
+      const language: AppLanguage = isSupportedLanguage(fromLocalStorage)
+        ? fromLocalStorage
+        : resolved;
+      void i18n.changeLanguage(language);
+      writeLang(language);
+    } catch {
+      /* ignore */
+    }
+  }, [resolved]);
 
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;
 }

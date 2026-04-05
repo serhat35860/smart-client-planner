@@ -1,23 +1,26 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 import { REMIND_BEFORE_MINUTES_OPTIONS } from "@/lib/remind-before-options";
 
 export function RemindBeforeSelect({
   value,
   onChange,
   disabled,
-  id
+  id,
+  labelClassName
 }: {
   value: number;
   onChange: (minutes: number) => void;
   disabled?: boolean;
   id?: string;
+  labelClassName?: string;
 }) {
   const { t } = useTranslation();
   return (
     <label className="block text-sm text-slate-700">
-      <span className="mb-1 block text-xs font-medium text-slate-600">{t("remind_before_label")}</span>
+      <span className={cn("mb-1 block text-xs font-semibold text-slate-900", labelClassName)}>{t("remind_before_label")}</span>
       <select
         id={id}
         value={value}

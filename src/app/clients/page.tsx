@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell";
-import { NewClientForm } from "@/components/new-client-form";
-import { QuickNoteForm } from "@/components/quick-note-form";
+import { ClientsAddClientPanel } from "@/components/clients-add-client-panel";
+import { QuickNoteFormWithRefresh } from "@/components/quick-note-form-with-refresh";
 import { EditableNoteCard } from "@/components/editable-note-card";
+import { ClientContactLinks } from "@/components/client-contact-links";
+import { ClientsSidebarList } from "@/components/clients-sidebar-list";
+import { ClientsFiltersForm } from "@/components/clients-filters-form";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { creatorSelect, mapNoteMentions, mapNoteTagsToDisplay } from "@/lib/creator-preview";
+import { noteCardInclude } from "@/lib/note-include";
+import { requireWorkspacePage } from "@/lib/workspace";
 import { getServerT } from "@/i18n/server";
+import { parseAdditionalContacts } from "@/lib/client-additional-contacts";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getServerT();
@@ -17,24 +21,39 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ClientsPage({
   searchParams
 }: {
-  searchParams: Promise<{ clientId?: string; q?: string; status?: "ACTIVE" | "PASSIVE" | "POTENTIAL" | "ALL" }>;
+  searchParams: Promise<{
+    clientId?: string;
+    q?: string;
+    status?: "ACTIVE" | "PASSIVE" | "POTENTIAL" | "ALL";
+    mentionedUserId?: string;
+  }>;
 }) {
-  const user = await requireUser();
-  if (!user) redirect("/login");
+  const ctx = await requireWorkspacePage();
+  const ws = ctx.workspace;
   const { t } = await getServerT();
   const params = await searchParams;
   const query = (params.q ?? "").trim();
   const statusFilter = params.status ?? "ALL";
+  const mentionedUserId = (params.mentionedUserId ?? "").trim() || null;
 
   const clients = await prisma.client.findMany({
     where: {
-      userId: user.id,
+      workspaceId: ws.id,
       ...(query
         ? {
             OR: [{ companyName: { contains: query } }, { contactPerson: { contains: query } }]
           }
         : {}),
-      ...(statusFilter !== "ALL" ? { status: statusFilter } : {})
+      ...(statusFilter !== "ALL" ? { status: statusFilter } : {}),
+      ...(mentionedUserId
+        ? {
+            notes: {
+              some: {
+                mentions: { some: { userId: mentionedUserId } }
+              }
+            }
+          }
+        : {})
     },
     orderBy: { createdAt: "desc" },
     select: {
@@ -42,18 +61,24 @@ export default async function ClientsPage({
       companyName: true,
       contactPerson: true,
       phone: true,
+      email: true,
+      sector: true,
+      generalNotes: true,
       status: true,
-      _count: { select: { notes: true } }
+      additionalContacts: true,
+      _count: { select: { notes: true } },
+      createdBy: { select: creatorSelect }
     }
   });
 
   const selectedClientId = params.clientId && clients.some((c) => c.id === params.clientId) ? params.clientId : clients[0]?.id;
   const selectedClient = selectedClientId
     ? await prisma.client.findFirst({
-        where: { id: selectedClientId, userId: user.id },
+        where: { id: selectedClientId, workspaceId: ws.id },
         include: {
+          createdBy: { select: creatorSelect },
           notes: {
-            include: { tags: { include: { tag: true } }, task: { select: { id: true } } },
+            include: noteCardInclude,
             orderBy: { createdAt: "desc" }
           }
         }
@@ -62,58 +87,48 @@ export default async function ClientsPage({
 
   return (
     <AppShell>
-      <div className="grid gap-5 lg:grid-cols-[320px_1fr_2fr]">
-        <aside className="space-y-4">
-          <NewClientForm />
+      <div className="grid gap-5 lg:grid-cols-[minmax(280px,340px)_1fr]">
+        <aside className="flex min-h-0 flex-col gap-4 lg:max-h-[calc(100vh-8rem)]">
+          <ClientsAddClientPanel
+            preserveQuery={query}
+            preserveStatus={statusFilter}
+            preserveMentionedUserId={mentionedUserId}
+          />
+          <section className="flex min-h-0 flex-1 flex-col rounded-2xl bg-white p-3 shadow-sm">
+            <h2 className="mb-2 shrink-0 text-sm font-semibold text-slate-600">{t("clients")}</h2>
+            <ClientsFiltersForm
+              initialQ={query}
+              initialStatus={statusFilter}
+              initialMentionUserId={mentionedUserId}
+              selectedClientId={selectedClientId}
+            />
+            <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+              <ClientsSidebarList
+                clients={clients.map((c) => ({
+                  id: c.id,
+                  companyName: c.companyName,
+                  contactPerson: c.contactPerson,
+                  phone: c.phone,
+                  email: c.email,
+                  sector: c.sector,
+                  generalNotes: c.generalNotes,
+                  status: c.status,
+                  notesCount: c._count.notes,
+                  createdBy: c.createdBy,
+                  additionalContacts: parseAdditionalContacts(c.additionalContacts)
+                }))}
+                selectedClientId={selectedClientId}
+                query={query}
+                statusFilter={statusFilter}
+                mentionedUserId={mentionedUserId}
+                rowStyle="button"
+              />
+              {clients.length === 0 ? <p className="text-sm text-slate-500">{t("no_clients_found")}</p> : null}
+            </div>
+          </section>
         </aside>
 
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-slate-600">{t("clients")}</h2>
-          <form className="mb-3 space-y-2">
-            <input name="q" defaultValue={query} placeholder={t("search_clients_placeholder")} />
-            <div className="flex gap-2">
-              <select name="status" defaultValue={statusFilter} className="w-full">
-                <option value="ALL">{t("all_statuses")}</option>
-                <option value="ACTIVE">{t("active")}</option>
-                <option value="PASSIVE">{t("passive")}</option>
-                <option value="POTENTIAL">{t("potential")}</option>
-              </select>
-              <button
-                type="submit"
-                className="rounded-xl px-3 py-2 text-sm text-[var(--ui-accent-contrast)]"
-                style={{ backgroundColor: "var(--ui-accent)" }}
-              >
-                {t("filter")}
-              </button>
-            </div>
-            {selectedClientId ? <input type="hidden" name="clientId" value={selectedClientId} /> : null}
-          </form>
-          <div className="space-y-2">
-            {clients.map((client) => {
-              const active = client.id === selectedClientId;
-              return (
-                <Link
-                  key={client.id}
-                  href={`/clients?clientId=${client.id}${query ? `&q=${encodeURIComponent(query)}` : ""}${
-                    statusFilter ? `&status=${statusFilter}` : ""
-                  }`}
-                  className={`block rounded-xl border p-3 transition ${
-                    active ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  <p className="font-semibold">{client.companyName}</p>
-                  <p className="text-sm text-slate-600">
-                    {client.contactPerson} - {t(client.status.toLowerCase() as "active" | "passive" | "potential")}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">{client._count.notes} {t("notes").toLowerCase()}</p>
-                </Link>
-              );
-            })}
-            {clients.length === 0 ? <p className="text-sm text-slate-500">{t("no_clients_found")}</p> : null}
-          </div>
-        </section>
-
-        <section className="space-y-4">
+        <section className="min-w-0 space-y-4">
           {selectedClient ? (
             <>
               <div className="rounded-2xl bg-white p-4 shadow-sm">
@@ -122,44 +137,50 @@ export default async function ClientsPage({
                     <h2 className="text-xl font-semibold">{selectedClient.companyName}</h2>
                     <p className="text-sm text-slate-600">{selectedClient.contactPerson}</p>
                   </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1">
-                    <a
-                      href={`https://wa.me/${selectedClient.phone.replace(/[^\d]/g, "")}`}
-                      className="text-sm text-emerald-700 hover:underline"
-                    >
-                      {t("whatsapp")}
-                    </a>
-                    <a
-                      href={`mailto:${encodeURIComponent(selectedClient.email)}`}
-                      className="text-sm text-sky-700 hover:underline"
-                    >
-                      {t("contact_by_email")}
-                    </a>
+                  <div className="flex min-w-0 max-w-full flex-col items-end gap-2 sm:max-w-[min(100%,24rem)]">
+                    <ClientContactLinks
+                      companyName={selectedClient.companyName}
+                      contactPerson={selectedClient.contactPerson}
+                      phone={selectedClient.phone}
+                      email={selectedClient.email}
+                      additionalContacts={parseAdditionalContacts(selectedClient.additionalContacts)}
+                      className="flex flex-wrap justify-end gap-x-4 gap-y-1"
+                    />
                   </div>
                 </div>
-                <QuickNoteForm clientId={selectedClient.id} />
+                <QuickNoteFormWithRefresh
+                  clientId={selectedClient.id}
+                  optionalNextDateLabelKey="clients_quick_note_reminder_heading"
+                />
               </div>
 
-              <div className="space-y-3">
+              <div className="rounded-2xl bg-white p-4 shadow-sm">
+                <h3 className="mb-3 text-sm font-semibold text-slate-600">{t("notes")}</h3>
                 {selectedClient.notes.length === 0 ? (
-                  <p className="rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">{t("no_notes_yet")}</p>
+                  <p className="text-sm text-slate-500">{t("no_notes_yet")}</p>
                 ) : (
-                  selectedClient.notes.map((note) => (
-                    <EditableNoteCard
-                      key={note.id}
-                      noteId={note.id}
-                      title={note.title}
-                      content={note.content}
-                      createdAt={note.createdAt}
-                      nextActionDate={note.nextActionDate}
-                      remindBeforeMinutes={note.remindBeforeMinutes}
-                      tags={note.tags.map((tag) => tag.tag.name)}
-                      color={note.color}
-                      nextLabel={t("next")}
-                      clientId={note.clientId}
-                      hasLinkedTask={!!note.task}
-                    />
-                  ))
+                  <div className="flex flex-wrap gap-2">
+                    {selectedClient.notes.map((note) => (
+                      <EditableNoteCard
+                        key={note.id}
+                        listPresentation="compact"
+                        noteId={note.id}
+                        title={note.title}
+                        content={note.content}
+                        createdAt={note.createdAt}
+                        nextActionDate={note.nextActionDate}
+                        remindBeforeMinutes={note.remindBeforeMinutes}
+                        tags={mapNoteTagsToDisplay(note.tags)}
+                        color={note.color}
+                        clientId={note.clientId}
+                        hasLinkedTask={!!note.task}
+                        createdBy={note.createdBy}
+                        updatedBy={note.updatedBy}
+                        editedByOtherMember={note.editedByOtherMember}
+                        mentions={mapNoteMentions(note.mentions)}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </>

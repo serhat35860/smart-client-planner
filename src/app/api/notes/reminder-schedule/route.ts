@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireWorkspace } from "@/lib/workspace";
 
 /** Not ve bekleyen görevler — istemci uyarı zamanını hesaplar (`at` = olay anı). */
 export async function GET() {
-  const user = await requireUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const ctx = await requireWorkspace();
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const [notes, tasks] = await Promise.all([
     prisma.note.findMany({
       where: {
-        userId: user.id,
+        workspaceId: ctx.workspace.id,
         nextActionDate: { not: null }
       },
       select: {
@@ -25,7 +25,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" }
     }),
     prisma.task.findMany({
-      where: { userId: user.id, status: "PENDING" },
+      where: { workspaceId: ctx.workspace.id, status: "PENDING" },
       select: {
         id: true,
         title: true,

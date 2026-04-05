@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
+import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const COOKIE_NAME = "scp_session";
@@ -36,12 +37,21 @@ function verifyToken(token: string): SessionPayload | null {
   return payload;
 }
 
-export async function loginWithEmailPassword(email: string, password: string) {
-  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
-  if (!user) return null;
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return null;
+export type TryLoginResult =
+  | { ok: true; user: User }
+  | { ok: false; reason: "bad_credentials" | "workspace_inactive" };
 
+export async function tryEmailPasswordLogin(email: string, password: string): Promise<TryLoginResult> {
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+  if (!user) return { ok: false, reason: "bad_credentials" };
+  const ok = await bcrypt.compare(password, user.passwordHash);
+  if (!ok) return { ok: false, reason: "bad_credentials" };
+  const member = await prisma.workspaceMember.findUnique({ where: { userId: user.id } });
+  if (member && !member.isActive) return { ok: false, reason: "workspace_inactive" };
+  return { ok: true, user };
+}
+
+export async function setSessionForUser(user: User) {
   const payload: SessionPayload = { userId: user.id, expiresAt: Date.now() + SESSION_TTL_MS };
   const token = signPayload(payload);
   (await cookies()).set(COOKIE_NAME, token, {
@@ -51,7 +61,13 @@ export async function loginWithEmailPassword(email: string, password: string) {
     path: "/",
     expires: new Date(payload.expiresAt)
   });
-  return user;
+}
+
+export async function loginWithEmailPassword(email: string, password: string) {
+  const r = await tryEmailPasswordLogin(email, password);
+  if (r.ok !== true) return null;
+  await setSessionForUser(r.user);
+  return r.user;
 }
 
 export async function logout() {

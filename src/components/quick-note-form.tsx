@@ -1,23 +1,32 @@
 "use client";
 
+import { CalendarClock } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 import { DateTime24Input, nowDateTimeLocalString } from "@/components/datetime-24-input";
 import { NoteBackgroundPicker } from "@/components/note-background-picker";
 import { RemindBeforeSelect } from "@/components/remind-before-select";
+import { NoteMemberPicker } from "@/components/note-member-picker";
 
 export function QuickNoteForm({
   clientId,
   onSaved,
   onCancel,
   reminderRequired = false,
-  saveButtonKey = "save_note_quickly"
+  saveButtonKey = "save_note_quickly",
+  sectionHeadingsClass,
+  /** İsteğe bağlı tarih alanı başlığı (varsayılan: `next`). */
+  optionalNextDateLabelKey
 }: {
   clientId?: string | null;
   onSaved?: () => void;
   onCancel?: () => void;
   reminderRequired?: boolean;
   saveButtonKey?: "save_note_quickly" | "save_reminder";
+  /** Alan başlıkları (ör. `uppercase tracking-wide`). */
+  sectionHeadingsClass?: string;
+  optionalNextDateLabelKey?: string;
 }) {
   const { t } = useTranslation();
   const [content, setContent] = useState("");
@@ -29,6 +38,7 @@ export function QuickNoteForm({
   const [color, setColor] = useState("yellow");
   const [customColor, setCustomColor] = useState("#fff9c4");
   const [remindBeforeMinutes, setRemindBeforeMinutes] = useState(15);
+  const [mentionedUserIds, setMentionedUserIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -50,7 +60,8 @@ export function QuickNoteForm({
           .filter(Boolean),
         nextActionDate: nextIso,
         remindBeforeMinutes: nextIso ? remindBeforeMinutes : null,
-        color
+        color,
+        mentionedUserIds
       })
     });
     setLoading(false);
@@ -61,8 +72,59 @@ export function QuickNoteForm({
     setColor("yellow");
     setCustomColor("#fff9c4");
     setRemindBeforeMinutes(15);
+    setMentionedUserIds([]);
     onSaved?.();
   }
+
+  const dateHeading = reminderRequired
+    ? t("reminder_datetime_required")
+    : t(optionalNextDateLabelKey ?? "next");
+  const showRemindBefore = reminderRequired || Boolean(nextActionDate.trim());
+  const frameReminderSection = Boolean(optionalNextDateLabelKey);
+
+  const remindBeforeRow = (
+    <RemindBeforeSelect
+      value={remindBeforeMinutes}
+      onChange={setRemindBeforeMinutes}
+      disabled={!nextActionDate.trim()}
+      labelClassName={sectionHeadingsClass}
+    />
+  );
+
+  const dateFields = (
+    <>
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          frameReminderSection && "border-b border-slate-200/90 pb-2"
+        )}
+      >
+        {frameReminderSection ? (
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[var(--ui-accent)] ring-1 ring-[var(--ui-accent)]/25"
+            aria-hidden
+          >
+            <CalendarClock className="h-4 w-4" strokeWidth={2} />
+          </span>
+        ) : null}
+        <span
+          className={cn(
+            "text-xs font-semibold text-slate-900",
+            frameReminderSection && "text-[13px] tracking-wide text-slate-800",
+            sectionHeadingsClass
+          )}
+        >
+          {dateHeading}
+        </span>
+      </div>
+      <DateTime24Input
+        value={nextActionDate}
+        onChange={setNextActionDate}
+        required={reminderRequired}
+        labelClassName={sectionHeadingsClass}
+      />
+    </>
+  );
 
   return (
     <form onSubmit={submit} className="space-y-2 rounded-2xl bg-white p-4 shadow-sm">
@@ -76,15 +138,26 @@ export function QuickNoteForm({
       />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <input placeholder={t("tags_placeholder")} value={tags} onChange={(e) => setTags(e.target.value)} />
-        <div className="flex flex-col gap-1 sm:col-span-1">
-          <span className="text-xs text-slate-600">{reminderRequired ? t("reminder_datetime_required") : t("next")}</span>
-          <DateTime24Input value={nextActionDate} onChange={setNextActionDate} required={reminderRequired} />
-        </div>
-        <NoteBackgroundPicker color={color} setColor={setColor} customColor={customColor} setCustomColor={setCustomColor} />
+        {frameReminderSection ? (
+          <div className="rounded-xl border-2 border-[var(--ui-accent)]/35 bg-slate-50 p-3 shadow-sm ring-1 ring-[var(--ui-accent)]/15 sm:col-span-1">
+            <div className="space-y-2">
+              {dateFields}
+              {showRemindBefore ? <div className="border-t border-slate-200/80 pt-2">{remindBeforeRow}</div> : null}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1 sm:col-span-1">{dateFields}</div>
+        )}
+        <NoteBackgroundPicker
+          color={color}
+          setColor={setColor}
+          customColor={customColor}
+          setCustomColor={setCustomColor}
+          headingClassName={sectionHeadingsClass}
+        />
       </div>
-      {reminderRequired || nextActionDate.trim() ? (
-        <RemindBeforeSelect value={remindBeforeMinutes} onChange={setRemindBeforeMinutes} disabled={!nextActionDate.trim()} />
-      ) : null}
+      {!frameReminderSection && showRemindBefore ? remindBeforeRow : null}
+      <NoteMemberPicker value={mentionedUserIds} onChange={setMentionedUserIds} labelClassName={sectionHeadingsClass} />
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <button
           type="submit"

@@ -2,57 +2,58 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { CreatorUpdaterCorner } from "@/components/added-by-line";
+import { GlobalSearchField, type GlobalSearchResult } from "@/components/global-search-field";
 import { AppShell } from "@/components/shell";
+import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-
-type SearchResult = {
-  clients: Array<{ id: string; companyName: string }>;
-  notes: Array<{ id: string; title: string | null; content: string; client: { id: string; companyName: string } | null }>;
-};
 
 export default function SearchPage() {
   const { t } = useTranslation();
-  const [q, setQ] = useState("");
-  const [results, setResults] = useState<SearchResult>({ clients: [], notes: [] });
-
-  async function search(value: string) {
-    setQ(value);
-    if (!value.trim()) {
-      setResults({ clients: [], notes: [] });
-      return;
-    }
-    const res = await fetch(`/api/search?q=${encodeURIComponent(value)}`);
-    if (res.ok) setResults(await res.json());
-  }
+  const [results, setResults] = useState<GlobalSearchResult>({ clients: [], notes: [] });
 
   return (
     <AppShell>
       <h1 className="mb-3 text-xl font-semibold">{t("global_search")}</h1>
-      <input value={q} onChange={(e) => search(e.target.value)} placeholder={t("search_placeholder")} className="mb-5 w-full" />
+      <GlobalSearchField onResults={setResults} className="mb-5" />
       <div className="grid gap-5 md:grid-cols-2">
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="mb-2 font-semibold">{t("clients")}</h2>
           <div className="space-y-2 text-sm">
             {results.clients.map((client) => (
-              <Link className="block hover:underline" key={client.id} href={`/clients/${client.id}`}>
-                {client.companyName}
-              </Link>
+              <div key={client.id} className="relative pb-6">
+                <Link className="block hover:underline" href={`/clients/${client.id}`}>
+                  {client.companyName}
+                </Link>
+                <CreatorUpdaterCorner creator={client.createdBy} updatedBy={null} />
+              </div>
             ))}
           </div>
         </section>
         <section className="rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="mb-2 font-semibold">{t("notes")}</h2>
           <div className="space-y-2 text-sm">
-            {results.notes.map((note) => (
-              <Link
-                className="block hover:underline"
-                key={note.id}
-                href={note.client ? `/clients/${note.client.id}` : "/dashboard"}
-              >
-                {note.client ? `${note.client.companyName}: ` : ""}
-                {note.title || note.content.slice(0, 48)}
-              </Link>
-            ))}
+            {results.notes.map((note) => {
+              const showUpdatedCorner = Boolean(note.updatedBy && note.editedByOtherMember);
+              const noteRowPb =
+                showUpdatedCorner && note.createdBy ? "pb-10" : showUpdatedCorner ? "pb-9" : "pb-6";
+              return (
+                <div key={note.id} className={cn("relative", noteRowPb)}>
+                  <Link
+                    className="block hover:underline"
+                    href={note.client ? `/clients/${note.client.id}` : "/dashboard"}
+                  >
+                    {note.client ? `${note.client.companyName}: ` : ""}
+                    {note.title || note.content.slice(0, 48)}
+                  </Link>
+                  <CreatorUpdaterCorner
+                    creator={note.createdBy}
+                    updatedBy={note.updatedBy}
+                    editedByOtherMember={note.editedByOtherMember}
+                  />
+                </div>
+              );
+            })}
           </div>
         </section>
       </div>

@@ -7,47 +7,52 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "activeTasksMetricFilter";
 
-type Filter = "all" | "incomplete";
+export type TaskMetricFilter = "all" | "incomplete" | "completed";
+
+function isFilter(v: string | null): v is TaskMetricFilter {
+  return v === "all" || v === "incomplete" || v === "completed";
+}
 
 export function ActiveTasksMetric({
-  allPendingCount,
-  incompletePendingCount,
+  completedCount,
   className,
-  syncIncompleteListToUrl,
-  urlTaskFilter = "all"
+  syncTaskListToUrl,
+  urlTaskListFilter = "all"
 }: {
-  allPendingCount: number;
-  incompletePendingCount: number;
+  /** Tanımlıysa filtrede "tamamlanan" seçeneği gösterilir. */
+  completedCount?: number;
   className?: string;
-  /** Panel: seçim `?activeTasks=incomplete` ile eşlenir ve liste sunucuda gösterilir. */
-  syncIncompleteListToUrl?: boolean;
-  urlTaskFilter?: Filter;
+  /** `?taskFilter=` ile seçim sunucuya yansır (ör. `/dashboard`, `/tasks`). */
+  syncTaskListToUrl?: boolean;
+  urlTaskListFilter?: TaskMetricFilter;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
-  const [localFilter, setLocalFilter] = useState<Filter>("all");
+  const showCompletedOption = completedCount !== undefined;
+  const [localFilter, setLocalFilter] = useState<TaskMetricFilter>("all");
 
   useEffect(() => {
-    if (syncIncompleteListToUrl) return;
+    if (syncTaskListToUrl) return;
     try {
       const v = localStorage.getItem(STORAGE_KEY);
-      if (v === "all" || v === "incomplete") setLocalFilter(v);
+      if (!isFilter(v)) return;
+      if (v === "completed" && !showCompletedOption) {
+        setLocalFilter("all");
+        return;
+      }
+      setLocalFilter(v);
     } catch {
       /* ignore */
     }
-  }, [syncIncompleteListToUrl]);
+  }, [syncTaskListToUrl, showCompletedOption]);
 
-  const filter: Filter = syncIncompleteListToUrl
-    ? urlTaskFilter === "incomplete"
-      ? "incomplete"
-      : "all"
-    : localFilter;
+  const filter: TaskMetricFilter = syncTaskListToUrl ? urlTaskListFilter : localFilter;
 
   function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const v = e.target.value as Filter;
-    if (syncIncompleteListToUrl) {
-      const href = v === "incomplete" ? `${pathname}?activeTasks=incomplete` : pathname;
+    const v = e.target.value as TaskMetricFilter;
+    if (syncTaskListToUrl) {
+      const href = v === "all" ? pathname : `${pathname}?taskFilter=${v}`;
       router.replace(href, { scroll: false });
       return;
     }
@@ -59,24 +64,29 @@ export function ActiveTasksMetric({
     }
   }
 
-  const count = filter === "all" ? allPendingCount : incompletePendingCount;
-
   return (
-    <div className={cn("rounded-2xl bg-white p-5", className ?? "shadow-sm")}>
-      <label className="block text-sm font-medium text-slate-500">
-        {t("active_tasks")}
-        <select
-          value={filter}
-          onChange={onChange}
-          className="mt-1.5 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-[var(--ui-accent)]"
-          aria-label={t("active_tasks")}
-        >
-          <option value="all">{t("active_tasks_filter_all")}</option>
-          <option value="incomplete">{t("active_tasks_filter_incomplete")}</option>
-        </select>
+    <div
+      className={cn(
+        "flex h-full min-h-[5.25rem] flex-col rounded-2xl p-3 text-[var(--ui-accent-contrast)]",
+        className ?? "shadow-sm"
+      )}
+      style={{ backgroundColor: "var(--ui-accent)" }}
+    >
+      <label className="flex min-h-0 flex-1 flex-col text-xs font-normal">
+        <span className="shrink-0 uppercase tracking-wide leading-tight">{t("active_tasks")}</span>
+        <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-end">
+          <select
+            value={filter === "completed" && !showCompletedOption ? "all" : filter}
+            onChange={onChange}
+            className="w-full cursor-pointer rounded-lg border border-slate-200/80 bg-[var(--ui-accent-contrast)] px-2 py-1.5 text-xs font-semibold normal-case text-[var(--ui-accent)] shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent-contrast)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-accent)]"
+            aria-label={t("active_tasks")}
+          >
+            <option value="all">{t("active_tasks_filter_all")}</option>
+            <option value="incomplete">{t("active_tasks_filter_incomplete")}</option>
+            {showCompletedOption ? <option value="completed">{t("active_tasks_filter_completed")}</option> : null}
+          </select>
+        </div>
       </label>
-      <p className="mt-3 text-3xl font-semibold tabular-nums">{count}</p>
-      <p className="mt-1 line-clamp-2 text-xs leading-snug text-slate-500">{t("active_tasks_metric_caption")}</p>
     </div>
   );
 }

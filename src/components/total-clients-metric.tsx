@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { NewClientForm } from "@/components/new-client-form";
+import { MentionAtCombo } from "@/components/mention-at-combo";
+import { useWorkspaceClientsQuery } from "@/hooks/use-workspace-clients-query";
 import { cn } from "@/lib/utils";
+
+const clientPickerModalHeadingClass = "uppercase tracking-wide";
 
 type ApiClient = {
   id: string;
@@ -14,41 +18,29 @@ type ApiClient = {
 };
 
 export function TotalClientsMetric({
-  title,
-  count,
   buttonClassName
 }: {
-  title: string;
-  count: number;
-  /** Overrides default shadow-sm on the metric tile. */
+  /** Ek Tailwind sınıfları (ör. özel gölge). */
   buttonClassName?: string;
-}) {
+} = {}) {
   const { t } = useTranslation();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [q, setQ] = useState("");
-  const [clients, setClients] = useState<ApiClient[]>([]);
-  const [loading, setLoading] = useState(false);
   const [quickAdd, setQuickAdd] = useState(false);
-
-  const loadClients = useCallback(async () => {
-    setLoading(true);
-    const res = await fetch("/api/clients");
-    if (res.ok) {
-      const data = (await res.json()) as ApiClient[];
-      setClients(data);
-    }
-    setLoading(false);
-  }, []);
+  const listActive = open && !quickAdd;
+  const {
+    q,
+    setQ,
+    setMentionUserId,
+    setMentionLabel,
+    mentionLabel,
+    clients,
+    loading
+  } = useWorkspaceClientsQuery(listActive);
 
   useEffect(() => {
-    if (open) {
-      void loadClients();
-    } else {
-      setQuickAdd(false);
-      setQ("");
-    }
-  }, [open, loadClients]);
+    if (!open) setQuickAdd(false);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,19 +51,9 @@ export function TotalClientsMetric({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return clients;
-    return clients.filter(
-      (c) =>
-        c.companyName.toLowerCase().includes(needle) || c.contactPerson.toLowerCase().includes(needle)
-    );
-  }, [clients, q]);
-
   function goToClient(id: string) {
     router.push(`/clients?clientId=${encodeURIComponent(id)}`);
     setOpen(false);
-    setQ("");
   }
 
   return (
@@ -80,14 +62,18 @@ export function TotalClientsMetric({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "w-full rounded-2xl bg-white p-5 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]",
-          buttonClassName ?? "shadow-sm"
+          "flex h-full min-h-[5.25rem] w-full flex-col rounded-2xl bg-slate-900 p-3 text-left text-white shadow-card-lift-dark transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
+          buttonClassName
         )}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <p className="text-sm text-slate-500">{title}</p>
-        <p className="mt-2 text-3xl font-semibold">{count}</p>
+        <p className="shrink-0 text-xs font-normal uppercase tracking-wide leading-tight text-slate-100">
+          {t("total_clients_tile_eyebrow")}
+        </p>
+        <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-end">
+          <p className="text-sm font-bold uppercase tracking-wide leading-snug text-white">{t("total_clients_tile_subtitle")}</p>
+        </div>
       </button>
 
       {open ? (
@@ -99,7 +85,10 @@ export function TotalClientsMetric({
         >
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
             <div className="border-b border-slate-200 p-4">
-              <h2 id="client-picker-title" className="text-lg font-semibold">
+              <h2
+                id="client-picker-title"
+                className={cn("text-lg font-semibold", clientPickerModalHeadingClass)}
+              >
                 {quickAdd ? t("quick_add_client") : t("client_picker_title")}
               </h2>
               <p className="mt-1 text-sm text-slate-500">
@@ -115,18 +104,33 @@ export function TotalClientsMetric({
                 </button>
               ) : (
                 <>
-                  <input
-                    type="search"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
+                  <MentionAtCombo
+                    listboxId="total-clients-metric-mention-list"
+                    textValue={q}
+                    onTextChange={setQ}
+                    mentionLabel={mentionLabel}
+                    onPickMention={(id, label) => {
+                      setMentionUserId(id);
+                      setMentionLabel(label);
+                      setQ("");
+                    }}
+                    onClearMention={() => {
+                      setMentionUserId(null);
+                      setMentionLabel(null);
+                    }}
                     placeholder={t("search_clients_placeholder")}
+                    chipHintKey="search_mention_filter_hint_clients_list"
                     className="mt-3 w-full"
+                    inputClassName="w-full"
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={() => setQuickAdd(true)}
-                    className="mt-3 w-full rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                    className={cn(
+                      "mt-3 w-full rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50",
+                      clientPickerModalHeadingClass
+                    )}
                   >
                     {t("quick_add_client")}
                   </button>
@@ -142,7 +146,6 @@ export function TotalClientsMetric({
                     onCreated={(c) => {
                       setOpen(false);
                       setQuickAdd(false);
-                      setQ("");
                       router.push(`/clients/${c.id}`);
                       router.refresh();
                     }}
@@ -150,11 +153,11 @@ export function TotalClientsMetric({
                 </div>
               ) : loading ? (
                 <p className="p-4 text-center text-sm text-slate-500">{t("loading")}</p>
-              ) : filtered.length === 0 ? (
+              ) : clients.length === 0 ? (
                 <p className="p-4 text-center text-sm text-slate-500">{t("no_clients_found")}</p>
               ) : (
                 <ul className="space-y-1">
-                  {filtered.map((c) => (
+                  {clients.map((c) => (
                     <li key={c.id}>
                       <button
                         type="button"
