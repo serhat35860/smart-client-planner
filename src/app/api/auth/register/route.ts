@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     if (!invite || invite.expiresAt < new Date()) {
       return NextResponse.json({ error: "Invalid or expired invite" }, { status: 400 });
     }
-    const user = await prisma.user.create({ data: { email, passwordHash, name } });
+    const user = await prisma.user.create({ data: { email, password: passwordHash, name } });
     await prisma.workspaceMember.create({
       data: { workspaceId: invite.workspaceId, userId: user.id, role: "MEMBER" }
     });

@@ -30,12 +30,11 @@ enum WorkspaceRole {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   @map("password")
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
 
   workspaceMember WorkspaceMember?
   clientsCreated  Client[] @relation("ClientCreatedBy")
@@ -46,6 +45,8 @@ model User {
   tagsCreated     Tag[]    @relation("TagCreatedBy")
   noteMentions    NoteUserMention[]
   taskMentions    TaskUserMention[]
+
+  @@map("users")
 }
 
 /** Paylaşılan ekip alanı: müşteriler, notlar, görevler workspace’e bağlıdır. */
