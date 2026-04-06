@@ -229,3 +229,5 @@ model TaskUserMention {
   @@id([taskId, userId])
   @@index([userId])
 }
+
+// force rebuild
