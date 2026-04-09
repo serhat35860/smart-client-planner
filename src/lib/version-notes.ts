@@ -19,6 +19,15 @@ export const productCapabilities: string[] = [
 
 export const versionNotes: VersionNote[] = [
   {
+    version: "v1.6.1",
+    date: "2026-04-09",
+    title: "Sürüm 1.1.1 — masaüstü RC / iç test paketi",
+    items: [
+      "Windows installer sürümü 1.1.1; dokümantasyon ve sürüm öncesi script’lerle hizalı paket (iç test / pilot için).",
+      "Detaylı işletim rehberi: docs/detayli-tarif.md; masaüstü duman testi: docs/desktop-beta-checklist.md."
+    ]
+  },
+  {
     version: "v1.6.0",
     date: "2026-04-09",
     title: "Sürüm 1.1.0 — aktivite günlüğü, audit ve yayın güvencesi",
