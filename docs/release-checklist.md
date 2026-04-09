@@ -1,5 +1,6 @@
 # Sürüm / EXE öncesi kontrol listesi
 
+**Tam tarif:** [`docs/detayli-tarif.md`](detayli-tarif.md)  
 Yönetici işletim (dal koruması, sırlar, acil): [`docs/ADMIN.md`](ADMIN.md).
 
 ## Tek komut (önerilen)
