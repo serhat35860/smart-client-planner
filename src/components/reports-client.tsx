@@ -5,18 +5,30 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ReportApiResponse, ReportRowJson } from "@/lib/report-types";
 import { appLanguageFromI18n, formatDateTime24 } from "@/lib/format-date";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 function kindLabel(kind: ReportRowJson["kind"], t: (k: string) => string) {
   switch (kind) {
     case "client":
       return t("reports_type_client");
+    case "client_updated":
+      return t("reports_type_client_updated");
     case "note":
       return t("reports_type_note");
+    case "note_updated":
+      return t("reports_type_note_updated");
     case "task_created":
       return t("reports_type_task_created");
     case "task_completed":
       return t("reports_type_task_completed");
+    case "task_failed":
+      return t("reports_type_task_failed");
+    case "task_updated":
+      return t("reports_type_task_updated");
+    case "tag_created":
+      return t("reports_type_tag_created");
+    case "audit":
+      return t("reports_type_audit");
     default:
       return kind;
   }
@@ -77,31 +89,40 @@ export function ReportsClient() {
 
   const exportXlsx = useCallback(() => {
     if (!data?.rows.length) return;
-    const header = [
-      t("reports_col_date"),
-      t("reports_col_type"),
-      t("reports_col_title"),
-      t("reports_col_detail"),
-      t("reports_col_client"),
-      t("reports_col_created_by")
-    ];
-    const aoa: string[][] = [
-      header,
-      ...data.rows.map((r) => [
-        formatDateTime24(r.at, lang),
-        kindLabel(r.kind, t),
-        r.title,
-        r.detail,
-        r.clientName ?? "—",
-        r.createdBy ?? "—"
-      ])
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 20 }, { wch: 18 }, { wch: 28 }, { wch: 45 }, { wch: 22 }, { wch: 18 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Rapor");
-    const fname = `rapor-${fromStr}_${toStr}.xlsx`;
-    XLSX.writeFile(wb, fname);
+    void (async () => {
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Rapor");
+      ws.columns = [
+        { header: t("reports_col_date"), width: 20 },
+        { header: t("reports_col_type"), width: 18 },
+        { header: t("reports_col_title"), width: 28 },
+        { header: t("reports_col_detail"), width: 45 },
+        { header: t("reports_col_client"), width: 22 },
+        { header: t("reports_col_created_by"), width: 18 }
+      ];
+      for (const r of data.rows) {
+        ws.addRow([
+          formatDateTime24(r.at, lang),
+          kindLabel(r.kind, t),
+          r.title,
+          r.detail,
+          r.clientName ?? "—",
+          r.createdBy ?? "—"
+        ]);
+      }
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rapor-${fromStr}_${toStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    })();
   }, [data, fromStr, lang, t, toStr]);
 
   const exportPdf = useCallback(async () => {
@@ -167,16 +188,16 @@ export function ReportsClient() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{t("reports")}</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-600">{t("reports_intro")}</p>
+        <h1 className="text-h2 font-semibold text-theme-text">{t("reports")}</h1>
+        <p className="mt-1 max-w-2xl text-body text-theme-muted">{t("reports_intro")}</p>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-end">
-        <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-medium text-slate-700">
+      <div className="flex flex-col gap-3 rounded-2xl bg-theme-card p-4 shadow-sm sm:flex-row sm:flex-wrap sm:items-end">
+        <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-medium text-theme-text">
           {t("reports_from")}
           <input type="date" value={fromStr} onChange={(e) => setFromStr(e.target.value)} className="w-full" />
         </label>
-        <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-medium text-slate-700">
+        <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-xs font-medium text-theme-text">
           {t("reports_to")}
           <input type="date" value={toStr} onChange={(e) => setToStr(e.target.value)} className="w-full" />
         </label>
@@ -184,24 +205,24 @@ export function ReportsClient() {
           type="button"
           onClick={() => void load()}
           disabled={loading}
-          className="rounded-xl px-4 py-2 text-sm font-medium text-[var(--ui-accent-contrast)] disabled:opacity-60"
-          style={{ backgroundColor: "var(--ui-accent)" }}
+          className="ui-btn-primary px-4 py-2"
+          aria-busy={loading}
         >
           {loading ? t("reports_loading") : t("reports_load")}
         </button>
       </div>
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-body text-theme-error">{error}</p> : null}
 
       {data && !loading ? (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-slate-600">{t("reports_rows_count", { count: data.rows.length })}</span>
+            <span className="text-body text-theme-muted">{t("reports_rows_count", { count: data.rows.length })}</span>
             <button
               type="button"
               onClick={() => void exportPdf()}
               disabled={!data.rows.length}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-lg border border-theme-border bg-theme-card px-3 py-1.5 text-sm hover:bg-theme-subtle disabled:opacity-50"
             >
               {t("reports_export_pdf")}
             </button>
@@ -209,19 +230,19 @@ export function ReportsClient() {
               type="button"
               onClick={exportXlsx}
               disabled={!data.rows.length}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-lg border border-theme-border bg-theme-card px-3 py-1.5 text-sm hover:bg-theme-subtle disabled:opacity-50"
             >
               {t("reports_export_xlsx")}
             </button>
           </div>
 
           {data.rows.length === 0 ? (
-            <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-600 shadow-sm">{t("reports_empty")}</p>
+            <p className="rounded-2xl bg-theme-card p-6 text-center text-body text-theme-muted shadow-sm">{t("reports_empty")}</p>
           ) : (
-            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-full border-collapse text-left text-sm">
+            <div className="overflow-x-auto rounded-2xl border border-theme-border bg-theme-card shadow-sm">
+              <table className="min-w-full border-collapse text-left text-body">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50">
+                  <tr className="border-b border-theme-border bg-theme-subtle">
                     <th className="whitespace-nowrap px-3 py-2 font-semibold">{t("reports_col_date")}</th>
                     <th className="whitespace-nowrap px-3 py-2 font-semibold">{t("reports_col_type")}</th>
                     <th className="min-w-[8rem] px-3 py-2 font-semibold">{t("reports_col_title")}</th>
@@ -232,19 +253,19 @@ export function ReportsClient() {
                 </thead>
                 <tbody>
                   {data.rows.map((r) => (
-                    <tr key={r.id} className="border-b border-slate-100 last:border-0">
-                      <td className="whitespace-nowrap px-3 py-2 align-top text-slate-700">
+                    <tr key={r.id} className="border-b border-theme-border last:border-0">
+                      <td className="whitespace-nowrap px-3 py-2 align-top text-theme-text">
                         {formatDateTime24(r.at, lang)}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 align-top text-slate-700">{kindLabel(r.kind, t)}</td>
-                      <td className="max-w-[14rem] px-3 py-2 align-top font-medium text-slate-900">{r.title}</td>
-                      <td className="max-w-xl px-3 py-2 align-top text-slate-600">
+                      <td className="whitespace-nowrap px-3 py-2 align-top text-theme-text">{kindLabel(r.kind, t)}</td>
+                      <td className="max-w-[14rem] px-3 py-2 align-top font-medium text-theme-text">{r.title}</td>
+                      <td className="max-w-xl px-3 py-2 align-top text-theme-muted">
                         <span className="line-clamp-4 whitespace-pre-wrap">{r.detail}</span>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 align-top text-slate-700">
+                      <td className="whitespace-nowrap px-3 py-2 align-top text-theme-text">
                         {r.clientName ?? "—"}
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2 align-top text-slate-700">
+                      <td className="whitespace-nowrap px-3 py-2 align-top text-theme-text">
                         {r.createdBy ?? "—"}
                       </td>
                     </tr>

@@ -14,12 +14,12 @@ export default function SearchPage() {
 
   return (
     <AppShell>
-      <h1 className="mb-3 text-xl font-semibold">{t("global_search")}</h1>
+      <h1 className="mb-3 text-h2 font-semibold">{t("global_search")}</h1>
       <GlobalSearchField onResults={setResults} className="mb-5" />
       <div className="grid gap-5 md:grid-cols-2">
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
+        <section className="rounded-2xl bg-theme-card p-4 shadow-sm">
           <h2 className="mb-2 font-semibold">{t("clients")}</h2>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-body">
             {results.clients.map((client) => (
               <div key={client.id} className="relative pb-6">
                 <Link className="block hover:underline" href={`/clients/${client.id}`}>
@@ -30,9 +30,9 @@ export default function SearchPage() {
             ))}
           </div>
         </section>
-        <section className="rounded-2xl bg-white p-4 shadow-sm">
+        <section className="rounded-2xl bg-theme-card p-4 shadow-sm">
           <h2 className="mb-2 font-semibold">{t("notes")}</h2>
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2 text-body">
             {results.notes.map((note) => {
               const showUpdatedCorner = Boolean(note.updatedBy && note.editedByOtherMember);
               const noteRowPb =

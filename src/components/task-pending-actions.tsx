@@ -8,9 +8,9 @@ import { MarkDoneButton } from "@/components/mark-done-button";
 export function TaskIncompleteReasonBlock({ text }: { text: string }) {
   const { t } = useTranslation();
   return (
-    <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-      <p className="font-medium text-amber-900">{t("not_completed_reason_label")}</p>
-      <p className="mt-1 whitespace-pre-wrap text-amber-950/90">{text}</p>
+    <div className="mt-2 rounded-lg border border-theme-warning/35 bg-theme-warning-soft px-3 py-2 text-xs text-theme-text">
+      <p className="font-medium text-theme-text">{t("not_completed_reason_label")}</p>
+      <p className="mt-1 whitespace-pre-wrap text-theme-muted">{text}</p>
     </div>
   );
 }
@@ -18,19 +18,21 @@ export function TaskIncompleteReasonBlock({ text }: { text: string }) {
 export function TaskCompletionNotesBlock({ text }: { text: string }) {
   const { t } = useTranslation();
   return (
-    <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-950">
-      <p className="font-medium text-emerald-900">{t("task_completion_notes_label")}</p>
-      <p className="mt-1 whitespace-pre-wrap text-emerald-950/90">{text}</p>
+    <div className="mt-2 rounded-lg border border-theme-success/35 bg-theme-success-soft px-3 py-2 text-xs text-theme-text">
+      <p className="font-medium text-theme-text">{t("task_completion_notes_label")}</p>
+      <p className="mt-1 whitespace-pre-wrap text-theme-muted">{text}</p>
     </div>
   );
 }
 
 export function TaskPendingActions({
   taskId,
-  existingReason
+  existingReason,
+  showAccept = false
 }: {
   taskId: string;
   existingReason?: string | null;
+  showAccept?: boolean;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -69,11 +71,23 @@ export function TaskPendingActions({
     const res = await fetch(`/api/tasks/${taskId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ notCompletedReason: trimmed })
+      body: JSON.stringify({ status: "FAILED", notCompletedReason: trimmed })
     });
     setLoading(false);
     if (!res.ok) return;
     setOpen(false);
+    router.refresh();
+  }
+
+  async function acceptTask() {
+    setLoading(true);
+    const res = await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ acceptTask: true })
+    });
+    setLoading(false);
+    if (!res.ok) return;
     router.refresh();
   }
 
@@ -84,39 +98,49 @@ export function TaskPendingActions({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-lg border border-slate-300 px-2 py-1 text-xs hover:bg-slate-50"
+          className="rounded-lg border border-theme-border px-2 py-1 text-xs hover:bg-theme-subtle"
         >
           {t("not_completed_record")}
         </button>
+        {showAccept ? (
+          <button
+            type="button"
+            onClick={() => void acceptTask()}
+            disabled={loading}
+            className="rounded-lg border border-theme-primary/50 bg-theme-primary/10 px-2 py-1 text-xs text-theme-primary hover:bg-theme-primary/20 disabled:opacity-50"
+          >
+            {t("task_take")}
+          </button>
+        ) : null}
       </div>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-theme-text/40 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="incomplete-reason-title"
         >
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
-            <h2 id="incomplete-reason-title" className="text-base font-semibold text-slate-900">
+          <div className="max-h-[72vh] w-full max-w-[25.5rem] overflow-y-auto rounded-2xl bg-theme-card p-5 shadow-xl">
+            <h2 id="incomplete-reason-title" className="text-h2 font-semibold text-theme-text">
               {t("not_completed_modal_title")}
             </h2>
-            <p className="mt-1 text-sm text-slate-600">{t("not_completed_modal_hint")}</p>
+            <p className="mt-1 text-body text-theme-muted">{t("not_completed_modal_hint")}</p>
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               rows={5}
-              className="mt-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-slate-400"
+              className="mt-3 w-full rounded-xl border border-theme-border px-3 py-2 text-body outline-none focus:border-theme-primary"
               placeholder={t("not_completed_placeholder")}
               disabled={loading}
             />
-            {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="mt-2 text-body text-theme-error">{error}</p> : null}
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
                 disabled={loading}
                 onClick={saveReason}
-                className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700 disabled:opacity-50"
+                className="rounded-xl bg-theme-primary px-4 py-2 text-button font-medium text-theme-on-primary hover:bg-theme-primary-hover disabled:opacity-50"
               >
                 {loading ? t("saving") : t("save")}
               </button>
@@ -124,7 +148,7 @@ export function TaskPendingActions({
                 type="button"
                 disabled={loading}
                 onClick={() => setOpen(false)}
-                className="rounded-xl border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+                className="rounded-xl border border-theme-border px-4 py-2 text-button font-medium hover:bg-theme-subtle"
               >
                 {t("cancel")}
               </button>

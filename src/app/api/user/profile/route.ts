@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { fail, ok } from "@/lib/api-response";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { AuditEventType } from "@/lib/audit-event-types";
+import { logAuditEvent } from "@/lib/audit-log";
 
 const patchSchema = z
   .object({
@@ -17,19 +20,24 @@ const patchSchema = z
   });
 
 export async function PATCH(req: Request) {
+  const ip = getClientIp(req);
+  const userAgent = req.headers.get("user-agent");
+  const bucket = checkRateLimit(`profile-patch:${ip}`, 30, 15 * 60 * 1000);
+  if (!bucket.ok) return fail("too_many_requests", "Too many requests. Please try again later.", 429);
+
   const user = await requireUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return fail("unauthorized", "Authentication required.", 401);
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return fail("invalid_json", "Request body must be valid JSON.", 400);
   }
 
   const parsed = patchSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
+    return fail("invalid_payload", "Invalid payload.", 400);
   }
 
   const { name, currentPassword, newPassword } = parsed.data;
@@ -37,7 +45,7 @@ export async function PATCH(req: Request) {
   const hasPassword = Boolean(newPassword?.length);
 
   if (!hasName && !hasPassword) {
-    return NextResponse.json({ error: "no_changes" }, { status: 400 });
+    return fail("invalid_payload", "No changes provided.", 400);
   }
 
   const data: { name?: string | null; passwordHash?: string } = {};
@@ -50,7 +58,7 @@ export async function PATCH(req: Request) {
   if (hasPassword) {
     const ok = await bcrypt.compare(currentPassword ?? "", user.passwordHash);
     if (!ok) {
-      return NextResponse.json({ error: "invalid_current_password" }, { status: 400 });
+      return fail("invalid_current_password", "Current password is incorrect.", 400);
     }
     data.passwordHash = await bcrypt.hash(newPassword!, 10);
   }
@@ -59,6 +67,17 @@ export async function PATCH(req: Request) {
     where: { id: user.id },
     data
   });
+  const membership = await prisma.workspaceMember.findUnique({
+    where: { userId: user.id },
+    select: { workspaceId: true }
+  });
+  await logAuditEvent({
+    eventType: hasPassword ? AuditEventType.USER_PASSWORD_CHANGED : AuditEventType.USER_PROFILE_UPDATED,
+    actorUserId: user.id,
+    workspaceId: membership?.workspaceId ?? null,
+    ipAddress: ip,
+    userAgent
+  });
 
-  return NextResponse.json({ ok: true });
+  return ok();
 }

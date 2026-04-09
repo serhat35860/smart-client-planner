@@ -106,13 +106,13 @@ export function MentionAtCombo({
     <div ref={wrapRef} className={cn("relative", className)}>
       {mentionLabel ? (
         <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-sm text-slate-800">
+          <span className="inline-flex items-center gap-1 rounded-full border border-theme-border bg-theme-subtle-hover px-3 py-1 text-body text-theme-text">
             @{mentionLabel}
-            <span className="text-xs text-slate-500">({t(chipHintKey)})</span>
+            <span className="text-xs text-theme-muted">({t(chipHintKey)})</span>
             <button
               type="button"
               onClick={onClearMention}
-              className="rounded-full p-0.5 text-slate-600 hover:bg-slate-200"
+              className="rounded-full p-0.5 text-theme-muted hover:bg-theme-subtle-hover"
               aria-label={t("search_clear_mention")}
             >
               <X className="h-3.5 w-3.5" strokeWidth={2} />
@@ -140,7 +140,7 @@ export function MentionAtCombo({
           id={listboxId}
           role="listbox"
           aria-label={t("search_mention_list_label")}
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-theme-border bg-theme-card py-1 shadow-lg"
         >
           {filteredMembers.map((m, i) => (
             <li key={m.userId} role="presentation">
@@ -150,7 +150,7 @@ export function MentionAtCombo({
                 aria-selected={i === activeIdx}
                 className={cn(
                   "flex w-full px-3 py-2 text-left text-sm",
-                  i === activeIdx ? "bg-slate-100 text-slate-900" : "text-slate-700 hover:bg-slate-50"
+                  i === activeIdx ? "bg-theme-subtle-hover text-theme-text" : "text-theme-text hover:bg-theme-subtle"
                 )}
                 onMouseEnter={() => setActiveIdx(i)}
                 onMouseDown={(e) => e.preventDefault()}
@@ -163,7 +163,7 @@ export function MentionAtCombo({
         </ul>
       ) : null}
       {menuOpen && textValue.startsWith("@") && filteredMembers.length === 0 && members.length > 0 ? (
-        <p className="absolute z-50 mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
+        <p className="absolute z-50 mt-1 w-full rounded-xl border border-theme-border bg-theme-card px-3 py-2 text-body text-theme-muted shadow-lg">
           {t("search_mention_no_match")}
         </p>
       ) : null}

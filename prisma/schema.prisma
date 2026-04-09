@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -22,31 +22,37 @@ enum TaskPriority {
 enum TaskStatus {
   PENDING
   DONE
+  FAILED
 }
 
 enum WorkspaceRole {
-  OWNER
-  MEMBER
+  ADMIN
+  USER
 }
 
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid())
   email     String   @unique
-  password  String   @map("password")
+  username  String?  @unique
+  passwordHash String
   name      String?
-  createdAt DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   workspaceMember WorkspaceMember?
   clientsCreated  Client[] @relation("ClientCreatedBy")
+  clientsUpdated  Client[] @relation("ClientUpdatedBy")
   notesCreated    Note[]   @relation("NoteCreatedBy")
   notesUpdated    Note[]   @relation("NoteUpdatedBy")
   tasksCreated    Task[]   @relation("TaskCreatedBy")
   tasksUpdated    Task[]   @relation("TaskUpdatedBy")
+  tasksAssigned   Task[]   @relation("TaskAssignee")
   tagsCreated     Tag[]    @relation("TagCreatedBy")
   noteMentions    NoteUserMention[]
   taskMentions    TaskUserMention[]
+  sessions        UserSession[]
+  auditEvents     AuditEvent[] @relation("AuditActor")
 
-  @@map("users")
 }
 
 /** Paylaşılan ekip alanı: müşteriler, notlar, görevler workspace’e bağlıdır. */
@@ -62,6 +68,41 @@ model Workspace {
   tasks   Task[]
   tags    Tag[]
   invites WorkspaceInvite[]
+  auditEvents AuditEvent[]
+}
+
+model UserSession {
+  id        String    @id @default(cuid())
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([revokedAt])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  actorUserId String?
+  eventType   String
+  entityType  String?
+  entityId    String?
+  ipAddress   String?
+  userAgent   String?
+  metaJson    Json?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  actor     User?      @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([eventType, createdAt])
 }
 
 /** Her kullanıcı tek bir workspace’e üyedir (MVP). */
@@ -69,7 +110,7 @@ model WorkspaceMember {
   id          String        @id @default(cuid())
   workspaceId String
   userId      String        @unique
-  role        WorkspaceRole @default(MEMBER)
+  role        WorkspaceRole @default(USER)
   /** Pasif üye oturum açamaz ve çalışma alanına erişemez. */
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
@@ -106,16 +147,19 @@ model Client {
   status          ClientStatus @default(POTENTIAL)
   workspaceId     String
   createdByUserId String?
+  updatedByUserId String?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User?     @relation("ClientCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedBy User?     @relation("ClientUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   notes     Note[]
   tasks     Task[]
 
   @@index([workspaceId, companyName])
   @@index([createdByUserId])
+  @@index([updatedByUserId])
 }
 
 model Note {
@@ -154,12 +198,15 @@ model Task {
   deadline            DateTime
   remindBeforeMinutes Int?
   priority            TaskPriority @default(MEDIUM)
+  color               String       @default("yellow")
   status              TaskStatus   @default(PENDING)
   notCompletedReason  String?
   /** Görev tamamlanırken kaydedilen gelişmeler / notlar. */
   completionNotes     String?
   workspaceId         String
-  clientId            String
+  clientId            String?
+  assigneeUserId      String?
+  acceptedAt          DateTime?
   noteId              String?      @unique
   createdByUserId     String?
   updatedByUserId     String?
@@ -168,13 +215,15 @@ model Task {
   updatedAt           DateTime     @updatedAt
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
   note      Note?     @relation(fields: [noteId], references: [id], onDelete: SetNull)
   createdBy User?     @relation("TaskCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   updatedBy User?     @relation("TaskUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  assignee  User?     @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
   mentions  TaskUserMention[]
 
   @@index([workspaceId, deadline, status])
+  @@index([assigneeUserId, acceptedAt])
   @@index([createdByUserId])
   @@index([updatedByUserId])
 }

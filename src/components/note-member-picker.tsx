@@ -39,7 +39,7 @@ export function NoteMemberPicker({
 
   return (
     <div className="space-y-1.5">
-      <span className={cn("text-xs font-semibold text-slate-900", labelClassName)}>{t("note_tag_people")}</span>
+      <span className={cn("text-xs font-medium text-theme-text", labelClassName)}>{t("note_tag_people")}</span>
       <div className="flex flex-wrap gap-2">
         {members.map((m) => {
           const on = value.includes(m.userId);
@@ -61,6 +61,6 @@ export function NoteMemberPicker({
 
 function cnChip(on: boolean) {
   return on
-    ? "rounded-full border border-slate-900 bg-slate-900 px-2.5 py-1 text-xs text-white"
-    : "rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50";
+    ? "rounded-full border border-theme-primary bg-theme-primary px-2.5 py-1 text-xs text-theme-on-primary"
+    : "rounded-full border border-theme-border bg-theme-card px-2.5 py-1 text-xs text-theme-text hover:bg-theme-subtle";
 }

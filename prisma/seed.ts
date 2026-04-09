@@ -9,9 +9,10 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: "demo@smartclientplanner.com" },
-    update: { passwordHash },
+    update: { passwordHash, username: "demo" },
     create: {
       email: "demo@smartclientplanner.com",
+      username: "demo",
       name: "Demo User",
       passwordHash
     }
@@ -25,7 +26,7 @@ async function main() {
     const ws = await prisma.workspace.create({
       data: {
         name: "Demo team",
-        members: { create: { userId: user.id, role: "OWNER" } }
+        members: { create: { userId: user.id, role: "ADMIN" } }
       }
     });
     workspaceId = ws.id;

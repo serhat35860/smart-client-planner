@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { createPortal } from "react-dom";
 import { DateTime24Input } from "@/components/datetime-24-input";
 import { NoteCard } from "@/components/note-card";
 import { NoteBackgroundPicker, NOTE_PALETTE } from "@/components/note-background-picker";
@@ -11,7 +12,6 @@ import { NoteMemberPicker } from "@/components/note-member-picker";
 import type { CreatorPreview, NoteMentionMember, TagWithCreator } from "@/lib/creator-preview";
 import { appLanguageFromI18n, formatDateTime24 } from "@/lib/format-date";
 import { noteSurfaceBgStyle } from "@/lib/note-surface";
-import { cn } from "@/lib/utils";
 
 function toDatetimeLocalValue(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -80,6 +80,7 @@ export function EditableNoteCard(props: Props) {
   const router = useRouter();
   const lang = appLanguageFromI18n(i18n.language);
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [sheetMode, setSheetMode] = useState<"view" | "edit">("edit");
   const [editTitle, setEditTitle] = useState(title ?? "");
   const [editContent, setEditContent] = useState(content);
@@ -96,6 +97,10 @@ export function EditableNoteCard(props: Props) {
   const [editMentionedUserIds, setEditMentionedUserIds] = useState<string[]>(() =>
     mentions.map((m) => m.userId)
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open || sheetMode !== "edit") return;
@@ -134,6 +139,16 @@ export function EditableNoteCard(props: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, sheetMode, listPresentation]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.documentElement.style.overflow;
+    // Modal açıkken arka plan scroll'unu kilitleyip ekran titremesini azalt.
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = prevOverflow;
+    };
+  }, [open]);
 
   function openFromCompact() {
     setSheetMode("view");
@@ -268,10 +283,10 @@ export function EditableNoteCard(props: Props) {
           title={t("client_note_compact_hint")}
           aria-label={t("client_note_compact_hint")}
         >
-          <span className="block truncate text-sm font-semibold text-slate-900">
+          <span className="block truncate text-body font-semibold text-slate-900">
             {compactChipPrimaryLine(title, content)}
           </span>
-          <span className="mt-0.5 block truncate text-[11px] text-slate-500">
+          <span className="mt-0.5 block truncate text-caption text-slate-700">
             {nextActionDate ? formatDateTime24(nextActionDate, lang) : formatDateTime24(createdAt, lang)}
           </span>
         </button>
@@ -309,146 +324,154 @@ export function EditableNoteCard(props: Props) {
         </div>
       )}
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={sheetMode === "view" ? "note-view-title" : "note-edit-title"}
-          onClick={() => {
-            if (sheetMode === "view") setOpen(false);
-          }}
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {sheetMode === "view" ? (
-              <div className="space-y-2">
-                <h2 id="note-view-title" className="text-lg font-bold text-slate-900">
-                  {title?.trim() ? title : t("note_no_title")}
-                </h2>
-                <p className="text-xs text-slate-500">
-                  <span className="font-medium text-slate-600">{t("note_card_header_created")}: </span>
-                  {formatDateTime24(createdAt, lang)}
-                  {nextActionDate ? (
-                    <>
-                      <span className="mx-1 text-slate-300">·</span>
-                      <span className="font-medium text-slate-600">{t("note_card_header_reminder")}: </span>
-                      {formatDateTime24(nextActionDate, lang)}
-                    </>
-                  ) : null}
-                </p>
-                <div className="mt-4 max-h-[min(50vh,24rem)] overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/90 p-4">
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{content}</p>
-                </div>
-                <div className="mt-6 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setSheetMode("edit")}
-                    className="rounded-xl px-4 py-2 text-sm text-[var(--ui-accent-contrast)]"
-                    style={{ backgroundColor: "var(--ui-accent)" }}
-                  >
-                    {t("note_view_edit")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50"
-                  >
-                    {t("close")}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <h3 id="note-edit-title" className="mb-3 text-lg font-bold text-slate-900">
-                  {t("edit_note")}
-                </h3>
-                <form onSubmit={save} className="space-y-2">
-              <input placeholder={t("optional_title")} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full" />
-              <textarea
-                placeholder={t("quick_note_placeholder")}
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="h-28 w-full resize-y"
-                required
+      {mounted && open
+        ? createPortal(
+            <>
+              <div
+                className="fixed inset-0 z-[120] bg-theme-text/45"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={sheetMode === "view" ? "note-view-title" : "note-edit-title"}
+                onClick={() => {
+                  if (sheetMode === "view") setOpen(false);
+                }}
               />
-              <input placeholder={t("tags_placeholder")} value={editTags} onChange={(e) => setEditTags(e.target.value)} className="w-full" />
-              <NoteMemberPicker value={editMentionedUserIds} onChange={setEditMentionedUserIds} />
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-900">{t("quick_option_reminder")}</span>
-                <DateTime24Input value={editNext} onChange={setEditNext} />
-              </div>
-              {editNext.trim() ? (
-                <RemindBeforeSelect value={editRemindBefore} onChange={setEditRemindBefore} />
-              ) : null}
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-slate-900">{t("link_to_client")}</span>
-                <select
-                  id="edit-note-link-client"
-                  aria-label={t("link_to_client")}
-                  value={editClientId}
-                  onChange={(e) => setEditClientId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              <div className="fixed inset-0 z-[121] p-3 sm:p-4">
+                <div
+                  className="absolute left-1/2 top-1/2 flex max-h-[69vh] w-[min(92vw,25.5rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-theme-card p-3.5 shadow-xl sm:p-4"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <option value="">{t("unassigned_note")}</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.companyName} — {c.contactPerson}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <NoteBackgroundPicker color={editColor} setColor={setEditColor} customColor={editCustom} setCustomColor={setEditCustom} />
-              {!hasLinkedTask ? (
-                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/90 p-3">
-                  <p className="text-xs font-semibold text-slate-900">{t("convert_to_task_section_title")}</p>
-                  <button
-                    type="button"
-                    onClick={convertToTask}
-                    disabled={loading || deleting || converting || !editClientId}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {converting ? t("creating") : t("convert_to_task")}
-                  </button>
-                  {!editClientId ? (
-                    <p className="text-xs text-slate-500">{t("convert_to_task_requires_client")}</p>
-                  ) : null}
+                {sheetMode === "view" ? (
+                  <div className="space-y-2">
+                    <h2 id="note-view-title" className="text-h3 font-semibold text-theme-text">
+                      {title?.trim() ? title : t("note_no_title")}
+                    </h2>
+                    <p className="text-xs text-theme-muted">
+                      <span className="font-medium text-theme-muted">{t("note_card_header_created")}: </span>
+                      {formatDateTime24(createdAt, lang)}
+                      {nextActionDate ? (
+                        <>
+                          <span className="mx-1 text-theme-border">·</span>
+                          <span className="font-medium text-theme-muted">{t("note_card_header_reminder")}: </span>
+                          {formatDateTime24(nextActionDate, lang)}
+                        </>
+                      ) : null}
+                    </p>
+                    <div className="mt-4 max-h-[min(50vh,24rem)] overflow-y-auto rounded-xl border border-theme-border bg-theme-subtle/90 p-4">
+                      <p className="whitespace-pre-wrap text-body leading-relaxed text-theme-text">{content}</p>
+                    </div>
+                    <div className="mt-6 flex flex-wrap gap-2 border-t border-theme-border pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setSheetMode("edit")}
+                        className="rounded-xl px-4 py-2 text-button font-medium text-[var(--ui-accent-contrast)]"
+                        style={{ backgroundColor: "var(--ui-accent)" }}
+                      >
+                        {t("note_view_edit")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOpen(false)}
+                        className="rounded-xl border border-theme-border bg-theme-card px-4 py-2 text-button font-medium hover:bg-theme-subtle"
+                      >
+                        {t("close")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <h3 id="note-edit-title" className="mb-3 shrink-0 border-b border-theme-border pb-2 text-h3 font-semibold text-theme-text">
+                      {t("edit_note")}
+                    </h3>
+                    <form onSubmit={save} className="flex min-h-0 flex-1 flex-col">
+                      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                        <input placeholder={t("optional_title")} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="w-full" />
+                        <textarea
+                          placeholder={t("quick_note_placeholder")}
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          className="h-28 w-full resize-y"
+                          required
+                        />
+                        <input placeholder={t("tags_placeholder")} value={editTags} onChange={(e) => setEditTags(e.target.value)} className="w-full" />
+                        <NoteMemberPicker value={editMentionedUserIds} onChange={setEditMentionedUserIds} />
+                        <div className="space-y-1">
+                          <span className="text-xs font-medium text-theme-text">{t("quick_option_reminder")}</span>
+                          <DateTime24Input value={editNext} onChange={setEditNext} />
+                        </div>
+                        {editNext.trim() ? (
+                          <RemindBeforeSelect value={editRemindBefore} onChange={setEditRemindBefore} />
+                        ) : null}
+                        <div className="space-y-1">
+                          <span className="text-xs font-medium text-theme-text">{t("link_to_client")}</span>
+                          <select
+                            id="edit-note-link-client"
+                            aria-label={t("link_to_client")}
+                            value={editClientId}
+                            onChange={(e) => setEditClientId(e.target.value)}
+                            className="w-full rounded-xl border border-theme-border px-3 py-2 text-body"
+                          >
+                            <option value="">{t("unassigned_note")}</option>
+                            {clients.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.companyName} — {c.contactPerson}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <NoteBackgroundPicker color={editColor} setColor={setEditColor} customColor={editCustom} setCustomColor={setEditCustom} />
+                        {!hasLinkedTask ? (
+                          <div className="space-y-2 rounded-xl border border-theme-border bg-theme-subtle/90 p-3">
+                            <p className="text-xs font-medium text-theme-text">{t("convert_to_task_section_title")}</p>
+                            <button
+                              type="button"
+                              onClick={convertToTask}
+                              disabled={loading || deleting || converting || !editClientId}
+                              className="w-full rounded-xl border border-theme-border bg-theme-card px-4 py-2 text-button font-medium hover:bg-theme-subtle disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {converting ? t("creating") : t("convert_to_task")}
+                            </button>
+                            {!editClientId ? (
+                              <p className="text-xs text-theme-muted">{t("convert_to_task_requires_client")}</p>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="mt-2 flex shrink-0 flex-wrap items-center gap-2 border-t border-theme-border pt-3">
+                        <button
+                          type="submit"
+                          disabled={loading || deleting || converting}
+                          className="rounded-xl px-4 py-2 text-button font-medium text-[var(--ui-accent-contrast)]"
+                          style={{ backgroundColor: "var(--ui-accent)" }}
+                        >
+                          {loading ? t("saving") : t("save")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditForm}
+                          className="rounded-xl border px-4 py-2 text-button font-medium"
+                          disabled={deleting || converting}
+                        >
+                          {t("cancel")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={removeNote}
+                          disabled={loading || deleting || converting}
+                          className="ml-auto rounded-xl border border-theme-error/30 px-4 py-2 text-body text-theme-error hover:bg-theme-danger-soft"
+                        >
+                          {deleting ? t("deleting") : t("delete_note")}
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                )}
                 </div>
-              ) : null}
-              <div className="flex flex-wrap items-center gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={loading || deleting || converting}
-                  className="rounded-xl px-4 py-2 text-sm text-[var(--ui-accent-contrast)]"
-                  style={{ backgroundColor: "var(--ui-accent)" }}
-                >
-                  {loading ? t("saving") : t("save")}
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelEditForm}
-                  className="rounded-xl border px-4 py-2 text-sm"
-                  disabled={deleting || converting}
-                >
-                  {t("cancel")}
-                </button>
-                <button
-                  type="button"
-                  onClick={removeNote}
-                  disabled={loading || deleting || converting}
-                  className="ml-auto rounded-xl border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-                >
-                  {deleting ? t("deleting") : t("delete_note")}
-                </button>
               </div>
-            </form>
-              </>
-            )}
-          </div>
-        </div>
-      ) : null}
+            </>,
+            document.body
+          )
+        : null}
     </>
   );
 }

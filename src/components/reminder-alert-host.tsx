@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { playSoftReminderChime } from "@/lib/play-soft-chime";
+import { getReminderSoundPreference, playSoftReminderChime } from "@/lib/play-soft-chime";
 import { appLanguageFromI18n, formatDateTime24 } from "@/lib/format-date";
 import { SNOOZE_MINUTES_OPTIONS } from "@/lib/snooze-minutes-options";
 import type { TFunction } from "i18next";
@@ -27,9 +27,11 @@ type AlertItem =
       at: string;
       remindBeforeMinutes: number;
       clientName: string;
+      assignmentPrompt?: boolean;
     };
 
 const POLL_MS = 35_000;
+const REPEAT_CHIME_MS = 5_000;
 const AFTER_EVENT_MS = 60 * 60 * 1000;
 
 function fireAtMs(atIso: string, remindBeforeMinutes: number) {
@@ -44,10 +46,6 @@ function eventTimeMs(item: AlertItem) {
 
 function dismissKey(item: AlertItem) {
   return `reminder-dismissed-${item.kind}-${item.id}-${eventTimeMs(item)}`;
-}
-
-function soundKey(item: AlertItem, fireMs: number) {
-  return `reminder-chimed-${item.kind}-${item.id}-${fireMs}`;
 }
 
 function snoozeUntilKey(item: AlertItem, fireMs: number) {
@@ -82,7 +80,8 @@ function normalizePayload(raw: unknown): AlertItem[] {
         content: typeof r.content === "string" ? r.content : "",
         at: r.at,
         remindBeforeMinutes: typeof r.remindBeforeMinutes === "number" ? r.remindBeforeMinutes : 0,
-        clientName: typeof r.clientName === "string" ? r.clientName : ""
+        clientName: typeof r.clientName === "string" ? r.clientName : "",
+        assignmentPrompt: Boolean(r.assignmentPrompt)
       };
     }
     if (r.kind === "note" && typeof r.at === "string") {
@@ -128,11 +127,11 @@ function ReminderSnoozeRow({
   return (
     <div className="flex flex-wrap items-end gap-2">
       <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-[13rem] sm:flex-none sm:flex-initial">
-        <span className="text-xs font-medium text-slate-600">{t("task_reminder_snooze_label")}</span>
+        <span className="text-xs font-medium text-theme-muted">{t("task_reminder_snooze_label")}</span>
         <select
           value={minutes}
           onChange={(e) => setMinutes(Number(e.target.value))}
-          className="w-full max-w-[13rem] rounded-lg border border-amber-200/80 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-400"
+          className="w-full max-w-[13rem] rounded-lg border border-theme-warning/35 bg-theme-card px-2 py-1.5 text-xs text-theme-text outline-none focus:border-theme-warning"
         >
           {SNOOZE_MINUTES_OPTIONS.map((m) => (
             <option key={m} value={m}>
@@ -145,7 +144,7 @@ function ReminderSnoozeRow({
         type="button"
         onClick={() => onSnooze(minutes)}
         disabled={completing}
-        className="shrink-0 rounded-lg border border-amber-400/90 bg-amber-100/80 px-3 py-1.5 text-xs font-medium text-amber-950 hover:bg-amber-200/80 disabled:cursor-not-allowed disabled:opacity-50"
+        className="shrink-0 rounded-lg border border-theme-warning/50 bg-theme-warning-soft px-3 py-1.5 text-xs font-medium text-theme-text hover:bg-theme-warning/25 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {t("task_reminder_snooze_button")}
       </button>
@@ -153,7 +152,7 @@ function ReminderSnoozeRow({
         type="button"
         onClick={onMarkDone}
         disabled={completing}
-        className="shrink-0 rounded-lg border border-emerald-500/80 bg-emerald-100/90 px-3 py-1.5 text-xs font-medium text-emerald-950 hover:bg-emerald-200/80 disabled:cursor-not-allowed disabled:opacity-50"
+        className="shrink-0 rounded-lg border border-theme-success/45 bg-theme-success-soft px-3 py-1.5 text-xs font-medium text-theme-text hover:bg-theme-success/22 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {completing ? t("loading") : t("done")}
       </button>
@@ -168,7 +167,6 @@ export function ReminderAlertHost() {
   const lang = appLanguageFromI18n(i18n.language);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [completingKey, setCompletingKey] = useState<string | null>(null);
-  const prevIdsRef = useRef<Set<string>>(new Set());
 
   const isLogin = pathname === "/login";
 
@@ -180,7 +178,6 @@ export function ReminderAlertHost() {
       const list = normalizePayload(await res.json());
       const now = Date.now();
       const active: AlertItem[] = [];
-      const nextSoundIds = new Set<string>();
 
       for (const n of list) {
         const F = fireAtMs(n.at, n.remindBeforeMinutes);
@@ -190,23 +187,8 @@ export function ReminderAlertHost() {
         if (isSnoozed(n, F, now)) continue;
         if (now < F || now > T + AFTER_EVENT_MS) continue;
         active.push(n);
-        const sk = soundKey(n, F);
-        if (!sessionStorage.getItem(sk)) {
-          nextSoundIds.add(sk);
-        }
       }
 
-      const newAlert = active.some((a) => {
-        const id = stableId(a);
-        return !prevIdsRef.current.has(id);
-      });
-
-      if (newAlert && nextSoundIds.size > 0) {
-        playSoftReminderChime();
-        nextSoundIds.forEach((k) => sessionStorage.setItem(k, "1"));
-      }
-
-      prevIdsRef.current = new Set(active.map((a) => stableId(a)));
       setAlerts(active);
     } catch {
       /* ignore */
@@ -230,6 +212,17 @@ export function ReminderAlertHost() {
     };
   }, [check, isLogin]);
 
+  useEffect(() => {
+    if (isLogin || alerts.length === 0) return;
+    const sound = getReminderSoundPreference();
+    // Uyarı açık kaldıkça belirli aralıkla sesi tekrar çal.
+    playSoftReminderChime(sound);
+    const id = window.setInterval(() => {
+      playSoftReminderChime(sound);
+    }, REPEAT_CHIME_MS);
+    return () => window.clearInterval(id);
+  }, [alerts, isLogin]);
+
   function dismiss(n: AlertItem) {
     try {
       sessionStorage.setItem(dismissKey(n), "1");
@@ -247,7 +240,6 @@ export function ReminderAlertHost() {
     const until = Date.now() + minutes * 60 * 1000;
     try {
       sessionStorage.setItem(snoozeUntilKey(item, F), String(until));
-      sessionStorage.removeItem(soundKey(item, F));
     } catch {
       /* ignore */
     }
@@ -280,6 +272,24 @@ export function ReminderAlertHost() {
     }
   }
 
+  async function acceptAssignedTask(item: AlertItem) {
+    if (item.kind !== "task") return;
+    const key = stableId(item);
+    setCompletingKey(key);
+    try {
+      const res = await fetch(`/api/tasks/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acceptTask: true })
+      });
+      if (!res.ok) return;
+      dismiss(item);
+      router.refresh();
+    } finally {
+      setCompletingKey(null);
+    }
+  }
+
   if (isLogin || alerts.length === 0) return null;
 
   return (
@@ -288,7 +298,6 @@ export function ReminderAlertHost() {
       aria-live="polite"
     >
       {alerts.map((n) => {
-        const F = fireAtMs(n.at, n.remindBeforeMinutes);
         const when = formatDateTime24(new Date(n.at), lang);
         const rowKey = stableId(n);
         const isCompleting = completingKey === rowKey;
@@ -302,30 +311,40 @@ export function ReminderAlertHost() {
         return (
           <div
             key={rowKey}
-            className="pointer-events-auto w-full max-w-lg rounded-2xl border border-amber-200/80 bg-amber-50/95 px-4 py-3 shadow-lg shadow-amber-900/10 backdrop-blur-sm"
+            className="pointer-events-auto w-full max-w-lg rounded-2xl border border-theme-warning/35 bg-theme-warning-soft px-4 py-3 shadow-lg shadow-theme-text/10"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-900/80">{alertTitle}</p>
-                <p className="mt-1 font-semibold text-slate-900">
+                <p className="text-caption font-medium uppercase tracking-wide text-theme-text/85">{alertTitle}</p>
+                <p className="mt-1 font-semibold text-theme-text">
                   {n.kind === "note" ? n.title?.trim() || t("quick_note_modal_title") : n.title}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-600">
+                <p className="mt-0.5 text-xs text-theme-muted">
                   {when}
                   {n.clientName ? ` · ${n.clientName}` : ""}
                 </p>
-                {preview ? <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{preview}</p> : null}
+                {preview ? <p className="mt-2 whitespace-pre-wrap text-body text-theme-text">{preview}</p> : null}
               </div>
               <button
                 type="button"
                 onClick={() => dismiss(n)}
                 disabled={isCompleting}
-                className="shrink-0 rounded-lg border border-amber-300/80 bg-white/80 px-2 py-1 text-xs text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="shrink-0 rounded-lg border border-theme-warning/45 bg-theme-card/80 px-2 py-1 text-xs text-theme-text hover:bg-theme-card disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("reminder_alert_dismiss")}
               </button>
             </div>
-            <div className="mt-2 space-y-2 border-t border-amber-200/60 pt-2">
+            <div className="mt-2 space-y-2 border-t border-theme-warning/30 pt-2">
+              {n.kind === "task" && n.assignmentPrompt ? (
+                <button
+                  type="button"
+                  onClick={() => void acceptAssignedTask(n)}
+                  disabled={isCompleting}
+                  className="rounded-lg border border-theme-primary/45 bg-theme-card px-3 py-1.5 text-xs font-medium text-theme-primary hover:bg-theme-subtle disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {t("task_take")}
+                </button>
+              ) : null}
               <ReminderSnoozeRow
                 t={t}
                 completing={isCompleting}
@@ -334,7 +353,7 @@ export function ReminderAlertHost() {
               />
               <Link
                 href={n.kind === "task" ? "/tasks" : "/reminders"}
-                className="inline-block text-xs font-medium text-amber-900 underline hover:no-underline"
+                className="inline-block text-xs font-medium text-theme-primary underline hover:no-underline"
               >
                 {n.kind === "task" ? t("reminder_alert_open_tasks") : t("reminder_alert_open_reminders")}
               </Link>

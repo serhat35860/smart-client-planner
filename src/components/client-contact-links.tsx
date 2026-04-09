@@ -12,14 +12,12 @@ import type { AdditionalContact } from "@/lib/client-additional-contacts";
 import { cn } from "@/lib/utils";
 
 export function ClientContactLinks({
-  companyName: _companyName,
   contactPerson,
   phone,
   email,
   additionalContacts = [],
   className
 }: {
-  companyName: string;
   contactPerson: string;
   phone: string;
   email: string;
@@ -82,11 +80,11 @@ export function ClientContactLinks({
         type="button"
         disabled={!waEnabled}
         onClick={() => setWaPickerOpen(true)}
-        className="text-sm text-emerald-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+        className="text-body text-theme-success hover:underline disabled:cursor-not-allowed disabled:opacity-50"
       >
         {t("whatsapp")}
       </button>
-      <a href={mailHref} className="text-sm text-sky-700 hover:underline">
+      <a href={mailHref} className="text-body text-theme-primary hover:underline">
         {t("contact_by_email")}
       </a>
     </div>
@@ -94,34 +92,34 @@ export function ClientContactLinks({
 
   const picker = waPickerOpen ? (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-theme-text/40 p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="wa-picker-title"
       onClick={() => setWaPickerOpen(false)}
     >
       <div
-        className="relative w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+        className="relative w-full max-w-[19.2rem] rounded-2xl bg-theme-card p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="wa-picker-title" className="text-lg font-semibold text-slate-900">
+        <h2 id="wa-picker-title" className="text-h3 font-semibold text-theme-text">
           {t("client_contact_whatsapp_choose_title")}
         </h2>
-        <p className="mt-1 text-sm text-slate-600">{t("client_contact_whatsapp_choose_hint")}</p>
+        <p className="mt-1 text-body text-theme-muted">{t("client_contact_whatsapp_choose_hint")}</p>
         <div className="mt-4 flex flex-col gap-2">
           <a
             href={webHref}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setWaPickerOpen(false)}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-medium text-slate-900 hover:bg-slate-50"
+            className="rounded-xl border border-theme-border bg-theme-card px-4 py-3 text-center text-body font-medium text-theme-text hover:bg-theme-subtle"
           >
             {t("client_contact_whatsapp_open_web")}
           </a>
           <a
             href={desktopHref}
             onClick={() => setWaPickerOpen(false)}
-            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-900 hover:bg-emerald-100"
+            className="rounded-xl border border-theme-success/40 bg-theme-success-soft px-4 py-3 text-center text-body font-medium text-theme-text hover:bg-theme-success/22"
           >
             {t("client_contact_whatsapp_open_desktop")}
           </a>
@@ -129,7 +127,7 @@ export function ClientContactLinks({
         <button
           type="button"
           onClick={() => setWaPickerOpen(false)}
-          className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          className="mt-3 w-full rounded-xl border border-theme-border px-4 py-2 text-body text-theme-text hover:bg-theme-subtle"
         >
           {t("cancel")}
         </button>
@@ -160,11 +158,11 @@ export function ClientContactLinks({
             alignEnd ? "w-full sm:w-64 sm:max-w-[16rem]" : "w-full max-w-md"
           )}
         >
-          <span className="text-xs font-medium text-slate-600">{t("client_contact_pick_person")}</span>
+          <span className="text-xs font-medium text-theme-muted">{t("client_contact_pick_person")}</span>
           <select
             value={contactKey}
             onChange={(e) => setContactKey(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900"
+            className="w-full rounded-lg border border-theme-border bg-theme-card px-2 py-1.5 text-body text-theme-text"
             aria-label={t("client_contact_pick_person")}
           >
             <option value="primary">
@@ -180,7 +178,7 @@ export function ClientContactLinks({
         {active.jobTitle?.trim() ? (
           <p
             className={cn(
-              "w-full text-xs text-slate-500",
+              "w-full text-xs text-theme-muted",
               alignEnd ? "text-right sm:max-w-[16rem]" : "text-left"
             )}
           >
@@ -190,7 +188,7 @@ export function ClientContactLinks({
         {active.phone.trim() ? (
           <p
             className={cn(
-              "w-full text-xs text-slate-500",
+              "w-full text-xs text-theme-muted",
               alignEnd ? "text-right sm:max-w-[16rem]" : "text-left"
             )}
           >

@@ -9,7 +9,7 @@ import { ClientsFiltersForm } from "@/components/clients-filters-form";
 import { prisma } from "@/lib/prisma";
 import { creatorSelect, mapNoteMentions, mapNoteTagsToDisplay } from "@/lib/creator-preview";
 import { noteCardInclude } from "@/lib/note-include";
-import { requireWorkspacePage } from "@/lib/workspace";
+import { canManageWorkspace, requireWorkspacePage } from "@/lib/workspace";
 import { getServerT } from "@/i18n/server";
 import { parseAdditionalContacts } from "@/lib/client-additional-contacts";
 
@@ -29,8 +29,9 @@ export default async function ClientsPage({
   }>;
 }) {
   const ctx = await requireWorkspacePage();
-  const ws = ctx.workspace;
   const { t } = await getServerT();
+  const ws = ctx.workspace;
+  if (!canManageWorkspace(ctx.role)) return <AppShell><div className="rounded-2xl bg-theme-card p-4 text-body text-theme-muted shadow-sm">{t("forbidden_area")}</div></AppShell>;
   const params = await searchParams;
   const query = (params.q ?? "").trim();
   const statusFilter = params.status ?? "ALL";
@@ -94,8 +95,8 @@ export default async function ClientsPage({
             preserveStatus={statusFilter}
             preserveMentionedUserId={mentionedUserId}
           />
-          <section className="flex min-h-0 flex-1 flex-col rounded-2xl bg-white p-3 shadow-sm">
-            <h2 className="mb-2 shrink-0 text-sm font-semibold text-slate-600">{t("clients")}</h2>
+          <section className="flex min-h-0 flex-1 flex-col rounded-2xl bg-theme-card p-3 shadow-sm">
+            <h2 className="mb-2 shrink-0 text-label font-semibold text-theme-muted">{t("clients")}</h2>
             <ClientsFiltersForm
               initialQ={query}
               initialStatus={statusFilter}
@@ -123,7 +124,7 @@ export default async function ClientsPage({
                 mentionedUserId={mentionedUserId}
                 rowStyle="button"
               />
-              {clients.length === 0 ? <p className="text-sm text-slate-500">{t("no_clients_found")}</p> : null}
+              {clients.length === 0 ? <p className="text-body text-theme-muted">{t("no_clients_found")}</p> : null}
             </div>
           </section>
         </aside>
@@ -131,15 +132,14 @@ export default async function ClientsPage({
         <section className="min-w-0 space-y-4">
           {selectedClient ? (
             <>
-              <div className="rounded-2xl bg-white p-4 shadow-sm">
+              <div className="rounded-2xl bg-theme-card p-4 shadow-sm">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-xl font-semibold">{selectedClient.companyName}</h2>
-                    <p className="text-sm text-slate-600">{selectedClient.contactPerson}</p>
+                    <h2 className="text-h2 font-semibold">{selectedClient.companyName}</h2>
+                    <p className="text-body text-theme-muted">{selectedClient.contactPerson}</p>
                   </div>
                   <div className="flex min-w-0 max-w-full flex-col items-end gap-2 sm:max-w-[min(100%,24rem)]">
                     <ClientContactLinks
-                      companyName={selectedClient.companyName}
                       contactPerson={selectedClient.contactPerson}
                       phone={selectedClient.phone}
                       email={selectedClient.email}
@@ -154,10 +154,10 @@ export default async function ClientsPage({
                 />
               </div>
 
-              <div className="rounded-2xl bg-white p-4 shadow-sm">
-                <h3 className="mb-3 text-sm font-semibold text-slate-600">{t("notes")}</h3>
+              <div className="rounded-2xl bg-theme-card p-4 shadow-sm">
+                <h3 className="mb-3 text-label font-semibold text-theme-muted">{t("notes")}</h3>
                 {selectedClient.notes.length === 0 ? (
-                  <p className="text-sm text-slate-500">{t("no_notes_yet")}</p>
+                  <p className="text-body text-theme-muted">{t("no_notes_yet")}</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {selectedClient.notes.map((note) => (
@@ -185,7 +185,7 @@ export default async function ClientsPage({
               </div>
             </>
           ) : (
-            <div className="rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm">{t("select_client")}</div>
+            <div className="rounded-2xl bg-theme-card p-4 text-body text-theme-muted shadow-sm">{t("select_client")}</div>
           )}
         </section>
       </div>

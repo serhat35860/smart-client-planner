@@ -244,19 +244,19 @@ export function ClientsSidebarList({
                 isBtn
                   ? `relative w-full cursor-pointer rounded-xl border-2 px-4 py-3 pb-8 text-left transition outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)] ${
                       active
-                        ? "border-[var(--ui-accent)] bg-slate-50 shadow-sm"
-                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                        ? "border-[var(--ui-accent)] bg-theme-subtle shadow-sm"
+                        : "border-theme-border bg-theme-card hover:border-theme-border hover:bg-theme-subtle"
                     }`
                   : `relative block w-full cursor-pointer rounded-xl border p-3 pb-8 text-left transition outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)] ${
-                      active ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:bg-slate-50"
+                      active ? "border-theme-text bg-theme-subtle" : "border-theme-border hover:bg-theme-subtle"
                     }`
               }
             >
               <p className={`font-semibold ${isBtn ? "text-sm" : ""}`}>{client.companyName}</p>
-              <p className={`text-slate-600 ${isBtn ? "text-xs" : "text-sm"}`}>
+              <p className={`text-theme-muted ${isBtn ? "text-xs" : "text-sm"}`}>
                 {client.contactPerson} — {t(client.status.toLowerCase() as "active" | "passive" | "potential")}
               </p>
-              <p className={`mt-1 text-slate-500 ${isBtn ? "text-[11px]" : "text-xs"}`}>
+              <p className="mt-1 text-caption text-theme-muted">
                 {client.notesCount} {t("notes").toLowerCase()}
               </p>
               <AddedByLine creator={client.createdBy} position="corner" />
@@ -267,7 +267,7 @@ export function ClientsSidebarList({
 
       {detail && detailMail ? (
         <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-theme-text/40 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="client-detail-title"
@@ -275,70 +275,70 @@ export function ClientsSidebarList({
         >
           <div
             key={modalHtmlLang}
-            className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+            className="max-h-[72vh] w-full max-w-[22.5rem] overflow-y-auto rounded-2xl bg-theme-card p-5 shadow-xl"
             lang={modalHtmlLang}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="client-detail-title" className="text-lg font-semibold text-slate-900">
+            <h2 id="client-detail-title" className="text-h3 font-semibold text-theme-text">
               {t("client_details_modal_title")}
             </h2>
             <div className="relative mt-3 pb-5">
-              <p className="text-xl font-semibold text-slate-900">{detail.companyName}</p>
+              <p className="text-h2 font-semibold text-theme-text">{detail.companyName}</p>
               <AddedByLine creator={detail.createdBy} position="corner" />
             </div>
             <dl className="mt-4 space-y-3 text-sm">
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("contact_person")}</dt>
-                <dd className="mt-0.5 text-slate-800">{detail.contactPerson}</dd>
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("contact_person")}</dt>
+                <dd className="mt-0.5 text-theme-text">{detail.contactPerson}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("phone")}</dt>
-                <dd className="mt-0.5 text-slate-800">{detail.phone || "—"}</dd>
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("phone")}</dt>
+                <dd className="mt-0.5 text-theme-text">{detail.phone || "—"}</dd>
               </div>
               {detail.additionalContacts && detail.additionalContacts.length > 0 ? (
                 <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">
                     {t("client_additional_contacts_heading")}
                   </dt>
-                  <dd className="mt-0.5 space-y-1 text-slate-800">
+                  <dd className="mt-0.5 space-y-1 text-theme-text">
                     {detail.additionalContacts.map((c, i) => (
                       <p key={`${c.name}-${i}`} className="text-sm">
                         {c.name}
                         {c.jobTitle ? ` — ${c.jobTitle}` : ""}
-                        <span className="text-slate-600"> — {c.phone}</span>
+                        <span className="text-theme-muted"> — {c.phone}</span>
                       </p>
                     ))}
                   </dd>
                 </div>
               ) : null}
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("email")}</dt>
-                <dd className="mt-0.5 break-all text-slate-800">{detail.email || "—"}</dd>
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("email")}</dt>
+                <dd className="mt-0.5 break-all text-theme-text">{detail.email || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("sector")}</dt>
-                <dd className="mt-0.5 text-slate-800">{detail.sector?.trim() || "—"}</dd>
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("sector")}</dt>
+                <dd className="mt-0.5 text-theme-text">{detail.sector?.trim() || "—"}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("status")}</dt>
-                <dd className="mt-0.5 text-slate-800">
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("status")}</dt>
+                <dd className="mt-0.5 text-theme-text">
                   {t(detail.status.toLowerCase() as "active" | "passive" | "potential")}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("notes")}</dt>
-                <dd className="mt-0.5 text-slate-800">{detail.notesCount}</dd>
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("notes")}</dt>
+                <dd className="mt-0.5 text-theme-text">{detail.notesCount}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("general_notes")}</dt>
-                <dd className="mt-0.5 whitespace-pre-wrap text-slate-800">
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("general_notes")}</dt>
+                <dd className="mt-0.5 whitespace-pre-wrap text-theme-text">
                   {detail.generalNotes?.trim() || "—"}
                 </dd>
               </div>
             </dl>
 
-            <div className="mt-6 border-t border-slate-200 pt-4">
-              <p className="text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <div className="mt-6 border-t border-theme-border pt-4">
+              <p className="text-center text-caption font-medium uppercase tracking-wide text-theme-muted">
                 {t("client_detail_contact_section")}
               </p>
               <div className="mt-3 flex items-center justify-center gap-6">
@@ -350,7 +350,7 @@ export function ClientsSidebarList({
                       setContactPickKind("tel");
                       setContactPickOpen(true);
                     }}
-                    className="bg-sky-100 text-sky-700 hover:bg-sky-200"
+                    className="bg-theme-primary/12 text-theme-primary hover:bg-theme-primary/20"
                   >
                     <Phone className="h-6 w-6" strokeWidth={2} />
                   </ContactIconButton>
@@ -359,7 +359,7 @@ export function ClientsSidebarList({
                     href={singleTarget ? telUrl(singleTarget.phone) : ""}
                     label={t("client_detail_action_call")}
                     disabled={!hasCallablePhone}
-                    className="bg-sky-100 text-sky-700 hover:bg-sky-200"
+                    className="bg-theme-primary/12 text-theme-primary hover:bg-theme-primary/20"
                   >
                     <Phone className="h-6 w-6" strokeWidth={2} />
                   </ContactIconLink>
@@ -372,7 +372,7 @@ export function ClientsSidebarList({
                       setContactPickKind("whatsapp");
                       setContactPickOpen(true);
                     }}
-                    className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    className="bg-theme-success-soft text-theme-success hover:bg-theme-success/22"
                   >
                     <WhatsAppGlyph className="h-6 w-6" />
                   </ContactIconButton>
@@ -381,7 +381,7 @@ export function ClientsSidebarList({
                     href={singleWaHref || "#"}
                     label={t("client_detail_action_whatsapp")}
                     disabled={!hasCallablePhone}
-                    className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    className="bg-theme-success-soft text-theme-success hover:bg-theme-success/22"
                   >
                     <WhatsAppGlyph className="h-6 w-6" />
                   </ContactIconLink>
@@ -390,7 +390,7 @@ export function ClientsSidebarList({
                   href={detailMail.mail}
                   label={t("client_detail_action_email")}
                   disabled={!detailMail.hasEmail}
-                  className="bg-violet-100 text-violet-700 hover:bg-violet-200"
+                  className="bg-theme-primary/12 text-theme-primary hover:bg-theme-primary/20"
                 >
                   <Mail className="h-6 w-6" strokeWidth={2} />
                 </ContactIconLink>
@@ -400,14 +400,14 @@ export function ClientsSidebarList({
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Link
                 href={`/clients/${detail.id}`}
-                className="inline-flex flex-1 items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-slate-800"
+                className="inline-flex flex-1 items-center justify-center rounded-xl bg-theme-primary px-4 py-2.5 text-center text-body font-medium text-theme-on-primary hover:bg-theme-primary-hover"
               >
                 {t("client_open_edit_page")}
               </Link>
               <button
                 type="button"
                 onClick={() => setDetail(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                className="rounded-xl border border-theme-border px-4 py-2.5 text-body text-theme-text hover:bg-theme-subtle"
               >
                 {t("close")}
               </button>
@@ -418,23 +418,23 @@ export function ClientsSidebarList({
 
       {contactPickOpen && detail && hasCallablePhone ? (
         <div
-          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center"
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-theme-text/50 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="client-pick-contact-title"
           onClick={() => setContactPickOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-2xl bg-theme-card p-5 shadow-xl"
             lang={modalHtmlLang}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="client-pick-contact-title" className="text-lg font-semibold text-slate-900">
+            <h3 id="client-pick-contact-title" className="text-h3 font-semibold text-theme-text">
               {contactPickKind === "tel"
                 ? t("client_pick_contact_phone_title")
                 : t("client_pick_contact_whatsapp_title")}
             </h3>
-            <p className="mt-1 text-sm text-slate-600">{t("client_pick_contact_hint")}</p>
+            <p className="mt-1 text-body text-theme-muted">{t("client_pick_contact_hint")}</p>
             <ul className="mt-4 max-h-[50vh] space-y-2 overflow-y-auto">
               {phoneTargets.map((target, i) => {
                 const d = phoneDigitsOnly(target.phone);
@@ -445,10 +445,10 @@ export function ClientsSidebarList({
                     <a
                       href={href}
                       onClick={() => setContactPickOpen(false)}
-                      className="block rounded-xl border border-slate-200 px-4 py-3 text-left text-sm transition hover:bg-slate-50"
+                      className="block rounded-xl border border-theme-border px-4 py-3 text-left text-body transition hover:bg-theme-subtle"
                     >
-                      <span className="block font-medium text-slate-900">{target.name}</span>
-                      <span className="mt-0.5 block text-slate-600">{target.phone}</span>
+                      <span className="block font-medium text-theme-text">{target.name}</span>
+                      <span className="mt-0.5 block text-theme-muted">{target.phone}</span>
                     </a>
                   </li>
                 );
@@ -457,7 +457,7 @@ export function ClientsSidebarList({
             <button
               type="button"
               onClick={() => setContactPickOpen(false)}
-              className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+              className="mt-4 w-full rounded-xl border border-theme-border px-4 py-2.5 text-body text-theme-text hover:bg-theme-subtle"
             >
               {t("cancel")}
             </button>

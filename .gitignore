@@ -4,12 +4,16 @@ node_modules
 .env.local
 .env.*.local
 dist
+dist-electron
+dist-desktop
 coverage
 *.log
 
 # Yerel SQLite (migration ile yeniden oluşur)
 prisma/dev.db
 prisma/dev.db-journal
+# Yanlış DATABASE_URL=file:./prisma/dev.db ile oluşan iç içe klasör
+prisma/prisma/
 
 # TypeScript
 *.tsbuildinfo
@@ -17,3 +21,6 @@ prisma/dev.db-journal
 # OS
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*.local

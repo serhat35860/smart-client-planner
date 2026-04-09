@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { creatorSelect } from "@/lib/creator-preview";
-import { requireWorkspace } from "@/lib/workspace";
+import {
+  canManageWorkspace,
+  requireWorkspace,
+  workspaceNotesVisibleWhere
+} from "@/lib/workspace";
 
 const noteSearchInclude = {
   client: true,
@@ -31,9 +35,11 @@ export async function GET(req: Request) {
   }
 
   const qTag = q.toLowerCase();
+  const visibleNoteWhere = workspaceNotesVisibleWhere(ctx.workspace.id, ctx.role, ctx.user.id);
+  const canManage = canManageWorkspace(ctx.role);
 
   const clientsPromise =
-    q.length > 0
+    q.length > 0 && canManage
       ? prisma.client.findMany({
           where: {
             workspaceId: ctx.workspace.id,
@@ -49,7 +55,7 @@ export async function GET(req: Request) {
     ? [
       prisma.note.findMany({
         where: {
-          workspaceId: ctx.workspace.id,
+          ...visibleNoteWhere,
           mentions: { some: { userId: mentionedUserId } },
           ...(q.length > 0
             ? {
@@ -65,7 +71,7 @@ export async function GET(req: Request) {
     : [
       prisma.note.findMany({
         where: {
-          workspaceId: ctx.workspace.id,
+          ...visibleNoteWhere,
           OR: [{ content: { contains: q } }, { title: { contains: q } }]
         },
         include: noteSearchInclude,
@@ -74,7 +80,7 @@ export async function GET(req: Request) {
       }),
       prisma.note.findMany({
         where: {
-          workspaceId: ctx.workspace.id,
+          ...visibleNoteWhere,
           tags: { some: { tag: { name: { contains: qTag } } } }
         },
         include: noteSearchInclude,
@@ -83,7 +89,7 @@ export async function GET(req: Request) {
       }),
       prisma.note.findMany({
         where: {
-          workspaceId: ctx.workspace.id,
+          ...visibleNoteWhere,
           mentions: {
             some: {
               user: {

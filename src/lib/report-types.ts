@@ -1,4 +1,14 @@
-export type ReportRowKind = "client" | "note" | "task_created" | "task_completed";
+export type ReportRowKind =
+  | "client"
+  | "client_updated"
+  | "note"
+  | "note_updated"
+  | "task_created"
+  | "task_completed"
+  | "task_failed"
+  | "task_updated"
+  | "tag_created"
+  | "audit";
 
 export type ReportRowJson = {
   id: string;

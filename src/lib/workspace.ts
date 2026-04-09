@@ -31,12 +31,12 @@ async function resolveWorkspace(): Promise<ResolveResult> {
     const workspace = await prisma.workspace.create({
       data: {
         name: defaultWorkspaceName(user),
-        members: { create: { userId: user.id, role: "OWNER", isActive: true } }
+        members: { create: { userId: user.id, role: "ADMIN", isActive: true } }
       }
     });
     return {
       status: "ok",
-      ctx: { user, workspace, role: "OWNER" }
+      ctx: { user, workspace, role: "ADMIN" }
     };
   }
   if (!member.isActive) return { status: "inactive" };
@@ -62,7 +62,7 @@ export async function requireWorkspacePage(): Promise<WorkspaceContext> {
 }
 
 export function canManageWorkspace(role: WorkspaceRole) {
-  return role === "OWNER";
+  return role === "ADMIN";
 }
 
 /** Üye listesi sorgusu: sahip tüm üyeleri, diğerleri yalnızca kendisini görür. */
@@ -71,5 +71,33 @@ export function workspaceMembersVisibleWhere(
   role: WorkspaceRole,
   userId: string
 ): Prisma.WorkspaceMemberWhereInput {
-  return role === "OWNER" ? { workspaceId } : { workspaceId, userId };
+  return role === "ADMIN" ? { workspaceId } : { workspaceId, userId };
+}
+
+/** Görev görünürlüğü: admin tümünü, user kendi/etiketli/atanan görevleri görür. */
+export function workspaceTasksVisibleWhere(
+  workspaceId: string,
+  role: WorkspaceRole,
+  userId: string
+): Prisma.TaskWhereInput {
+  return role === "ADMIN"
+    ? { workspaceId }
+    : {
+        workspaceId,
+        OR: [{ createdByUserId: userId }, { mentions: { some: { userId } } }, { assigneeUserId: userId }]
+      };
+}
+
+/** Not görünürlüğü: admin tümünü, user yalnızca etiketlendiği notları görür. */
+export function workspaceNotesVisibleWhere(
+  workspaceId: string,
+  role: WorkspaceRole,
+  userId: string
+): Prisma.NoteWhereInput {
+  return role === "ADMIN"
+    ? { workspaceId }
+    : {
+        workspaceId,
+        OR: [{ createdByUserId: userId }, { mentions: { some: { userId } } }]
+      };
 }

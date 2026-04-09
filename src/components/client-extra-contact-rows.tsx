@@ -37,7 +37,7 @@ export function PrimaryContactWithPlus({
           type="button"
           disabled={addDisabled}
           onClick={onAddExtra}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-theme-border bg-theme-card text-theme-text hover:bg-theme-subtle disabled:cursor-not-allowed disabled:opacity-40"
           aria-label={t("client_add_contact_plus")}
         >
           <Plus className="h-5 w-5" strokeWidth={2} />
@@ -55,7 +55,7 @@ export function PrimaryContactWithPlus({
           type="button"
           disabled={addDisabled}
           onClick={onAddExtra}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-theme-border bg-theme-card text-theme-text hover:bg-theme-subtle disabled:cursor-not-allowed disabled:opacity-40"
           aria-label={t("client_add_contact_plus")}
         >
           <Plus className="h-5 w-5" strokeWidth={2} />
@@ -85,7 +85,7 @@ export function ClientExtraContactRows({
   return (
     <>
       {contacts.map((row, i) => (
-        <div key={i} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+        <div key={i} className="space-y-2 rounded-xl border border-theme-border bg-theme-subtle/50 p-3">
           <div className="flex items-center gap-2">
             <input
               className="min-w-0 flex-1"
@@ -96,7 +96,7 @@ export function ClientExtraContactRows({
             <button
               type="button"
               onClick={() => remove(i)}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-200 text-red-700 hover:bg-red-50"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-theme-error/30 text-theme-error hover:bg-theme-danger-soft"
               aria-label={t("client_remove_extra_contact")}
             >
               <Trash2 className="h-4 w-4" strokeWidth={2} />

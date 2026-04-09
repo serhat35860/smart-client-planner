@@ -53,31 +53,31 @@ export function NoteCard({
           : "";
   return (
     <article
-      className={cn("relative rounded-2xl p-4", footerPad, surfaceShadowClass ?? "shadow-sm")}
+      className={cn("relative rounded-2xl p-4 text-slate-900", footerPad, surfaceShadowClass ?? "shadow-sm")}
       style={noteSurfaceBgStyle(color)}
     >
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-xs text-slate-600">
+      <div className="mb-2 flex flex-wrap items-start justify-between gap-x-3 gap-y-1 text-xs text-slate-700">
         <span>
-          <span className="font-medium text-slate-700">{t("note_card_header_created")}: </span>
+          <span className="font-medium text-slate-900">{t("note_card_header_created")}: </span>
           {formatDateTime24(createdAt, lang)}
         </span>
         {nextActionDate ? (
           <span className="text-right sm:text-right">
-            <span className="font-medium text-slate-700">{t("note_card_header_reminder")}: </span>
+            <span className="font-medium text-slate-900">{t("note_card_header_reminder")}: </span>
             {formatDateTime24(nextActionDate, lang)}
           </span>
         ) : null}
       </div>
-      {clientLine ? <p className="mb-2 text-xs text-slate-500">{clientLine}</p> : null}
+      {clientLine ? <p className="mb-2 text-xs text-slate-700">{clientLine}</p> : null}
       {title ? <h4 className="mb-2 font-semibold">{title}</h4> : null}
       <p className="whitespace-pre-wrap text-sm">{content}</p>
       {mentions.length > 0 ? (
         <div className="mt-2 flex flex-wrap items-center gap-1.5 pr-[42%]">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-slate-600/90">{t("note_mentions_short")}</span>
+          <span className="text-caption font-medium uppercase tracking-wide text-slate-700/90">{t("note_mentions_short")}</span>
           {mentions.map((m) => (
             <span
               key={m.userId}
-              className="rounded-full bg-white/85 px-2 py-0.5 text-[11px] font-medium text-slate-800 ring-1 ring-slate-300/80"
+              className="rounded-full bg-white/80 px-2 py-0.5 text-caption font-medium text-slate-900 ring-1 ring-slate-300/80"
             >
               @{m.name?.trim() || m.email}
             </span>
@@ -87,7 +87,7 @@ export function NoteCard({
       {tags.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <span key={tag.name} className="inline-block rounded-full bg-white/70 px-2 py-0.5 text-xs">
+            <span key={tag.name} className="inline-block rounded-full bg-theme-card/70 px-2 py-0.5 text-caption">
               #{tag.name}
             </span>
           ))}

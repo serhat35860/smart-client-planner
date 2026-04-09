@@ -77,16 +77,16 @@ export function DateTime24Input({ value, onChange, required, className, id, labe
   return (
     <div className={cn("flex flex-wrap items-end gap-3", className)} id={id}>
       <label className="flex min-w-[10rem] flex-1 flex-col gap-1">
-        <span className={cn("text-xs font-semibold text-slate-900", labelClassName)}>{t("datetime24_date")}</span>
+        <span className={cn("text-xs font-medium text-theme-text", labelClassName)}>{t("datetime24_date")}</span>
         <input type="date" value={d} onChange={(e) => setDate(e.target.value)} required={required} className="w-full" />
       </label>
       <div className="flex flex-col gap-1">
-        <span className={cn("text-xs font-semibold text-slate-900", labelClassName)}>{t("datetime24_time_24h")}</span>
+        <span className={cn("text-xs font-medium text-theme-text", labelClassName)}>{t("datetime24_time_24h")}</span>
         <div className="flex items-center gap-1">
           <select
             value={h}
             onChange={(e) => setHour(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm"
+            className="rounded-lg border border-theme-border bg-theme-card px-2 py-1.5 text-sm"
             aria-label={t("datetime24_hour")}
           >
             {HOURS.map((hour) => (
@@ -95,13 +95,13 @@ export function DateTime24Input({ value, onChange, required, className, id, labe
               </option>
             ))}
           </select>
-          <span className="pb-1 text-slate-500" aria-hidden>
+          <span className="pb-1 text-theme-muted" aria-hidden>
             :
           </span>
           <select
             value={m}
             onChange={(e) => setMinute(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm"
+            className="rounded-lg border border-theme-border bg-theme-card px-2 py-1.5 text-sm"
             aria-label={t("datetime24_minute")}
           >
             {MINUTES.map((min) => (

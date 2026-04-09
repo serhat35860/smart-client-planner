@@ -34,9 +34,9 @@ export function ThemePicker() {
   }
 
   return (
-    <label className="flex items-center gap-2 text-xs text-slate-600">
+    <label className="flex items-center gap-2 text-label font-medium text-theme-muted">
       <span className="hidden sm:inline">{t("theme")}</span>
-      <select value={current} onChange={(e) => onChange(e.target.value)} className="min-w-[130px] py-1 text-xs">
+      <select value={current} onChange={(e) => onChange(e.target.value)} className="min-w-[130px] py-1 text-body">
         {UI_THEME_PRESETS.map((preset) => (
           <option key={preset.id} value={preset.id}>
             {t(preset.labelKey as never)}

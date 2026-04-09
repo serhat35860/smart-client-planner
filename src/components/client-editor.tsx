@@ -51,10 +51,11 @@ export function ClientEditor({ client }: Props) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const contactsSyncKey = useMemo(
-    () => JSON.stringify(parseAdditionalContacts(client.additionalContacts)),
+  const parsedAdditionalContacts = useMemo(
+    () => parseAdditionalContacts(client.additionalContacts),
     [client.additionalContacts]
   );
+  const contactsSyncKey = useMemo(() => JSON.stringify(parsedAdditionalContacts), [parsedAdditionalContacts]);
 
   useEffect(() => {
     setForm({
@@ -67,13 +68,24 @@ export function ClientEditor({ client }: Props) {
       status: client.status
     });
     setExtraContacts(
-      parseAdditionalContacts(client.additionalContacts).map((c) => ({
+      parsedAdditionalContacts.map((c) => ({
         name: c.name,
         phone: c.phone,
         jobTitle: c.jobTitle ?? ""
       }))
     );
-  }, [client.id, contactsSyncKey, client.companyName, client.contactPerson, client.phone, client.email, client.sector, client.generalNotes, client.status]);
+  }, [
+    client.id,
+    contactsSyncKey,
+    client.companyName,
+    client.contactPerson,
+    client.phone,
+    client.email,
+    client.sector,
+    client.generalNotes,
+    client.status,
+    parsedAdditionalContacts
+  ]);
 
   function addExtraContact() {
     if (!canAddExtraContact(extraContacts.length)) return;
@@ -108,22 +120,19 @@ export function ClientEditor({ client }: Props) {
     router.push("/clients");
   }
 
-  const parsedExtras = parseAdditionalContacts(client.additionalContacts);
-
   return (
     <>
-      <div className="relative mb-3 rounded-2xl bg-white px-4 py-3 pb-8 shadow-sm">
+      <div className="relative mb-3 rounded-2xl bg-theme-card px-4 py-3 pb-8 shadow-sm">
         <ClientContactLinks
-          companyName={client.companyName}
           contactPerson={client.contactPerson}
           phone={client.phone}
           email={client.email}
-          additionalContacts={parsedExtras}
+          additionalContacts={parsedAdditionalContacts}
           className="flex flex-wrap gap-4"
         />
         <AddedByLine creator={client.createdBy} position="corner" />
       </div>
-      <form onSubmit={save} className="mb-4 grid gap-2 rounded-2xl bg-white p-4 shadow-sm md:grid-cols-2">
+      <form onSubmit={save} className="mb-4 grid gap-2 rounded-2xl bg-theme-card p-4 shadow-sm md:grid-cols-2">
         <input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} required />
         <div className="md:col-span-2 space-y-2">
           <PrimaryContactWithPlus
@@ -150,10 +159,10 @@ export function ClientEditor({ client }: Props) {
           placeholder={t("general_notes")}
         />
         <div className="flex gap-2 md:col-span-2">
-          <button disabled={loading} className="rounded-xl bg-slate-900 px-3 py-2 text-sm text-white">
+          <button disabled={loading} className="rounded-xl bg-theme-primary px-3 py-2 text-button font-medium text-theme-on-primary">
             {loading ? t("saving") : t("save_client")}
           </button>
-          <button type="button" onClick={remove} className="rounded-xl border border-red-200 px-3 py-2 text-sm text-red-700">
+          <button type="button" onClick={remove} className="rounded-xl border border-theme-error/30 px-3 py-2 text-body text-theme-error">
             {t("delete")}
           </button>
         </div>

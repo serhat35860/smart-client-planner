@@ -22,14 +22,14 @@ export function AddedByLine({
       <p
         className={
           className ??
-          "pointer-events-none absolute bottom-2 right-3 z-[1] max-w-[min(13rem,58%)] text-right text-[11px] leading-snug text-slate-600"
+          "pointer-events-none absolute bottom-2 right-3 z-[1] max-w-[min(13rem,58%)] text-right text-caption leading-snug text-theme-muted"
         }
       >
         {text}
       </p>
     );
   }
-  return <p className={className ?? "mt-1 text-xs text-slate-500"}>{text}</p>;
+  return <p className={className ?? "mt-1 text-xs text-theme-muted"}>{text}</p>;
 }
 
 /** Kart sağ alt: ekleyen + (ekleyen dışında biri müdahale ettiyse) son güncelleyen. */
@@ -49,12 +49,12 @@ export function CreatorUpdaterCorner({
   return (
     <div className="pointer-events-none absolute bottom-2 right-3 z-[1] max-w-[min(13rem,58%)] text-right leading-snug">
       {creator ? (
-        <p className="text-[11px] text-slate-600">{t("added_by", { name: creator.name?.trim() || creator.email })}</p>
+        <p className="text-caption text-theme-muted">{t("added_by", { name: creator.name?.trim() || creator.email })}</p>
       ) : null}
       {showUpdated ? (
         <div className="mt-0.5 space-y-0.5">
-          <p className="text-[10px] font-medium text-slate-500">{t("updated_by_heading")}</p>
-          <p className="text-[10px] text-slate-600">
+          <p className="text-caption font-medium text-theme-muted">{t("updated_by_heading")}</p>
+          <p className="text-caption text-theme-muted">
             {t("last_updated_by_detail", { name: updatedBy!.name?.trim() || updatedBy!.email })}
           </p>
         </div>

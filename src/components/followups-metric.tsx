@@ -44,13 +44,13 @@ export function FollowupsMetric({
   const count = period === "daily" ? dailyCount : period === "weekly" ? weeklyCount : monthlyCount;
 
   return (
-    <div className={cn("rounded-2xl bg-white p-3", className ?? "shadow-sm")}>
-      <label className="block text-xs font-bold text-slate-900">
+    <div className={cn("rounded-2xl bg-theme-card p-3", className ?? "shadow-sm")}>
+      <label className="block text-xs font-medium text-theme-text">
         {t("followups_metric_label")}
         <select
           value={period}
           onChange={onChange}
-          className="mt-1 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-semibold text-slate-900 outline-none focus:border-[var(--ui-accent)]"
+          className="mt-1 w-full cursor-pointer rounded-lg border border-theme-border bg-theme-card px-2 py-1.5 text-xs font-medium text-theme-text outline-none focus:border-[var(--ui-accent)]"
           aria-label={t("followups_metric_label")}
         >
           <option value="daily">{t("followups_period_daily")}</option>
@@ -58,7 +58,7 @@ export function FollowupsMetric({
           <option value="monthly">{t("followups_period_monthly")}</option>
         </select>
       </label>
-      <p className="mt-2 text-2xl font-semibold tabular-nums leading-tight">{count}</p>
+      <p className="mt-2 text-h1 font-semibold tabular-nums leading-tight">{count}</p>
     </div>
   );
 }

@@ -5,7 +5,10 @@ import {
   additionalContactsForPrisma,
   sanitizeAdditionalContactsInput
 } from "@/lib/client-additional-contacts";
-import { requireWorkspace } from "@/lib/workspace";
+import { AuditEventType } from "@/lib/audit-event-types";
+import { canManageWorkspace, requireWorkspace } from "@/lib/workspace";
+import { logWorkspaceActivity } from "@/lib/workspace-audit";
+import { readJsonBody } from "@/lib/read-json";
 
 const contactPair = z.object({
   name: z.string().max(200),
@@ -27,6 +30,7 @@ const schema = z.object({
 export async function GET(req: Request) {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!canManageWorkspace(ctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim();
   const mentionedUserId = (url.searchParams.get("mentionedUserId") ?? "").trim() || null;
@@ -58,7 +62,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const parsed = schema.safeParse(await req.json());
+  if (!canManageWorkspace(ctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const body = await readJsonBody(req);
+  if (!body.ok) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  const parsed = schema.safeParse(body.body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   const { additionalContacts: extraRaw, ...rest } = parsed.data;
   const extra = sanitizeAdditionalContactsInput(extraRaw ?? []);
@@ -69,6 +76,13 @@ export async function POST(req: Request) {
       workspaceId: ctx.workspace.id,
       createdByUserId: ctx.user.id
     }
+  });
+  await logWorkspaceActivity(ctx, {
+    eventType: AuditEventType.CLIENT_CREATED,
+    entityType: "client",
+    entityId: client.id,
+    metaJson: { companyName: client.companyName },
+    req
   });
   return NextResponse.json(client, { status: 201 });
 }

@@ -22,10 +22,10 @@ export default async function WorkspaceSuspendedPage() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 p-6 text-center">
-      <h1 className="text-xl font-semibold text-slate-900">{t("team_workspace_suspended_title")}</h1>
-      <p className="max-w-md text-sm text-slate-600">{t("team_workspace_suspended_body")}</p>
+      <h1 className="text-h2 font-semibold text-theme-text">{t("team_workspace_suspended_title")}</h1>
+      <p className="max-w-md text-body text-theme-muted">{t("team_workspace_suspended_body")}</p>
       <WorkspaceSuspendedLogout />
-      <p className="text-xs text-slate-500">{t("team_workspace_suspended_logout_hint")}</p>
+      <p className="text-xs text-theme-muted">{t("team_workspace_suspended_logout_hint")}</p>
     </div>
   );
 }

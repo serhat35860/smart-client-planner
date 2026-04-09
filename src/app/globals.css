@@ -2,34 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Varsayılan: Warm (turuncu CRM). Tema seçici `applyUiThemeToDocumentRoot` ile güncellenir.
+ */
 :root {
-  --ui-bg: #f7f7f5;
-  --ui-accent: #0f172a;
-  --ui-accent-contrast: #ffffff;
+  --color-bg: #fffbf5;
+  --color-card: #ffffff;
+  --color-header: #ffffff;
+  --color-primary: #ea580c;
+  --color-primary-hover: #c2410c;
+  --color-text: #1c1917;
+  --color-text-secondary: #78716c;
+  --color-border: #fed7aa;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-on-primary: #ffffff;
+
+  /* Geriye dönük (mevcut bileşenler) */
+  --ui-bg: var(--color-bg);
+  --ui-accent: var(--color-primary);
+  --ui-accent-contrast: var(--color-on-primary);
+  --ui-success: var(--color-success);
+  --ui-danger: var(--color-error);
+  --ui-muted: var(--color-text-secondary);
 }
+
+/**
+ * Tipografi ağırlık: başlık → semibold (600), gövde → regular (400), buton → semibold (600) — CTA netliği.
+ */
 
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /**
+   * Not 1: Pencere boyutuna göre akışkan temel ölçek.
+   * Uygulamadaki tipografi ve panel spacing'lerinin büyük kısmı rem tabanlı olduğu için
+   * bu değer küçülüp büyüdükçe birlikte dengeli şekilde ölçeklenir.
+   */
+  font-size: clamp(14px, 0.55vw + 11.8px, 17px);
 }
 
-body {
-  @apply text-slate-800 antialiased;
-  background-color: var(--ui-bg);
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+@media (max-width: 420px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1600px) {
+  html {
+    font-size: clamp(15px, 0.35vw + 10px, 18px);
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-theme-bg font-sans text-body font-normal text-theme-text antialiased;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  h1 {
+    @apply text-h1 font-semibold text-theme-text;
+  }
+  h2 {
+    @apply text-h2 font-semibold text-theme-text;
+  }
+  h3 {
+    @apply text-h3 font-semibold text-theme-text;
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+  }
 }
 
 input,
 select,
 textarea {
-  @apply rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none;
+  @apply rounded-xl px-3 py-2 text-body outline-none;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-card);
+  color: var(--color-text);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--ui-accent);
+  border-color: var(--color-primary);
 }
 
 button {
@@ -37,64 +100,361 @@ button {
 }
 
 @layer components {
-  /** Ana panel 4’lü grid: border/zemin tema `--ui-accent` ile harmanlanır. */
-  .dash-theme-panel {
+  /** Birincil / ikincil buton (giriş, panel CTA) */
+  .ui-btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-button font-semibold;
+    color: var(--color-on-primary);
+    background-color: var(--color-primary);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease,
+      background-color 0.15s ease,
+      opacity 0.15s ease;
+  }
+  .ui-btn-primary:hover:not(:disabled) {
+    background-color: var(--color-primary-hover);
+    box-shadow: 0 6px 14px -4px color-mix(in srgb, var(--color-primary) 40%, transparent);
+  }
+  .ui-btn-primary:active:not(:disabled) {
+    transform: translateY(0.5px);
+  }
+  .ui-btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .ui-btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-button font-semibold;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-card);
+    color: var(--color-text);
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .ui-btn-secondary:hover {
+    background-color: color-mix(in srgb, var(--color-text) 4%, var(--color-card));
+    border-color: color-mix(in srgb, var(--color-text) 12%, var(--color-border));
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
+
+  .ui-empty-state {
+    transition: box-shadow 0.2s ease;
+  }
+  .ui-empty-state:hover {
+    box-shadow:
+      0 2px 6px -2px color-mix(in srgb, var(--color-text) 5%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--color-border) 75%, var(--color-bg));
+  }
+
+  /** Üst metrik kartları: düz yüzey, kontrollü gölge */
+  .dash-premium-metric {
     border-radius: 1rem;
-    border: 2px solid color-mix(in srgb, var(--ui-accent) 34%, rgb(226 232 240));
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease,
+      background-color 0.2s ease;
+    box-shadow:
+      0 1px 1px color-mix(in srgb, var(--color-text) 4%, transparent),
+      0 4px 14px -4px color-mix(in srgb, var(--color-text) 7%, transparent);
+  }
+  .dash-premium-metric:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 2px 4px color-mix(in srgb, var(--color-text) 5%, transparent),
+      0 10px 22px -6px color-mix(in srgb, var(--color-text) 9%, transparent);
+  }
+
+  /** Dashboard hızlı başlangıç şeridi */
+  .dashboard-cta-bar {
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 82%, var(--color-bg));
     background: linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--ui-accent) 10%, white),
-      white
+      120deg,
+      color-mix(in srgb, var(--color-primary) 5%, var(--color-card)) 0%,
+      var(--color-card) 55%,
+      color-mix(in srgb, var(--color-bg) 40%, var(--color-card)) 100%
     );
     box-shadow:
-      0 4px 6px -1px rgba(15, 23, 42, 0.07),
-      0 0 0 1px color-mix(in srgb, var(--ui-accent) 7%, transparent);
+      0 1px 1px color-mix(in srgb, var(--color-text) 3%, transparent),
+      0 6px 20px -8px color-mix(in srgb, var(--color-text) 6%, transparent);
+    padding: 1.125rem 1.25rem;
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  @media (min-width: 640px) {
+    .dashboard-cta-bar {
+      padding: 1.25rem 1.5rem;
+    }
+  }
+  .dashboard-cta-bar:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 14%, var(--color-border));
+    box-shadow:
+      0 1px 2px color-mix(in srgb, var(--color-text) 4%, transparent),
+      0 8px 24px -8px color-mix(in srgb, var(--color-text) 8%, transparent);
+  }
+
+  .dashboard-cta-bar .ui-btn-primary {
+    padding-inline: 1.25rem;
+    padding-block: 0.65rem;
+    font-weight: 600;
+    border-radius: 0.625rem;
+    box-shadow: 0 2px 10px -2px color-mix(in srgb, var(--color-primary) 28%, transparent);
+  }
+
+  .dashboard-cta-bar .ui-btn-secondary {
+    padding-inline: 1.125rem;
+    padding-block: 0.65rem;
+    font-weight: 600;
+    border-radius: 0.625rem;
+  }
+
+  /** Panel / kart bölüm başlığı — h2’den hafif büyük, hiyerarşi net */
+  .dash-panel-section-title {
+    font-size: 1.3125rem;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+  }
+  .dash-panel-section-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--color-primary) 10%, var(--color-card));
+    color: var(--color-primary);
+    border: 1px solid color-mix(in srgb, var(--color-border) 70%, var(--color-bg));
+  }
+  @media (min-width: 640px) {
+    .dash-panel-section-icon {
+      width: 2.75rem;
+      height: 2.75rem;
+    }
+  }
+
+  /** Ana panel: yumuşak border, sade gölge, net ama minimal hover */
+  .dash-theme-panel {
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, var(--color-bg));
+    background: linear-gradient(to bottom, var(--color-card), color-mix(in srgb, var(--color-bg) 88%, var(--color-card)));
+    box-shadow:
+      0 1px 1px color-mix(in srgb, var(--color-text) 3%, transparent),
+      0 5px 16px -6px color-mix(in srgb, var(--color-text) 5%, transparent);
+    transition:
+      transform 0.17s ease,
+      box-shadow 0.17s ease,
+      border-color 0.17s ease;
+  }
+  .dash-theme-panel:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--color-border) 55%, var(--color-text));
+    box-shadow:
+      0 2px 4px color-mix(in srgb, var(--color-text) 4%, transparent),
+      0 10px 28px -8px color-mix(in srgb, var(--color-text) 7%, transparent);
   }
 
   .dash-theme-panel--light {
-    border-color: color-mix(in srgb, var(--ui-accent) 22%, rgb(226 232 240));
-    background: linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--ui-accent) 5%, white),
-      white
-    );
+    border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--color-bg));
+    background: linear-gradient(to bottom, var(--color-card), color-mix(in srgb, var(--color-bg) 90%, var(--color-card)));
     box-shadow:
-      0 3px 5px -1px rgba(15, 23, 42, 0.06),
-      0 0 0 1px color-mix(in srgb, var(--ui-accent) 5%, transparent);
+      0 1px 1px color-mix(in srgb, var(--color-text) 2.5%, transparent),
+      0 4px 14px -6px color-mix(in srgb, var(--color-text) 4.5%, transparent);
+    transition:
+      transform 0.17s ease,
+      box-shadow 0.17s ease,
+      border-color 0.17s ease;
+  }
+  .dash-theme-panel--light:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--color-border) 62%, var(--color-text));
+    box-shadow:
+      0 2px 3px color-mix(in srgb, var(--color-text) 3.5%, transparent),
+      0 8px 22px -7px color-mix(in srgb, var(--color-text) 6%, transparent);
   }
 
   .dash-theme-panel--strong {
-    border-color: color-mix(in srgb, var(--ui-accent) 48%, rgb(226 232 240));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 14%, var(--color-border));
     background: linear-gradient(
       to bottom,
-      color-mix(in srgb, var(--ui-accent) 15%, white),
-      white
+      color-mix(in srgb, var(--color-primary) 5%, var(--color-card)),
+      var(--color-card)
     );
     box-shadow:
-      0 4px 6px -1px rgba(15, 23, 42, 0.08),
-      0 0 0 1px color-mix(in srgb, var(--ui-accent) 10%, transparent);
+      0 1px 1px color-mix(in srgb, var(--color-text) 3.5%, transparent),
+      0 6px 18px -7px color-mix(in srgb, var(--color-text) 6%, transparent);
+    transition:
+      transform 0.17s ease,
+      box-shadow 0.17s ease,
+      border-color 0.17s ease;
+  }
+  .dash-theme-panel--strong:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+    box-shadow:
+      0 2px 4px color-mix(in srgb, var(--color-text) 4%, transparent),
+      0 12px 30px -8px color-mix(in srgb, var(--color-text) 8%, transparent);
   }
 
   .dash-theme-panel-rule {
-    border-bottom: 2px solid color-mix(in srgb, var(--ui-accent) 26%, rgb(226 232 240));
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 65%, var(--color-bg));
   }
 
   .dash-theme-panel-link {
+    @apply text-label font-medium;
     border-radius: 0.5rem;
-    background: color-mix(in srgb, var(--ui-accent) 12%, white);
-    color: var(--ui-accent);
-    font-weight: 500;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 16%, var(--color-border));
+    background: color-mix(in srgb, var(--color-primary) 6%, var(--color-card));
+    color: var(--color-primary);
     text-decoration: none;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
   }
 
   .dash-theme-panel-link:hover {
-    background: color-mix(in srgb, var(--ui-accent) 22%, white);
+    background: color-mix(in srgb, var(--color-primary) 11%, var(--color-card));
+    border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 4%, transparent);
   }
 
-  /** Ana panel: bağımsız not + hatırlatma — halka yok; hafif kart gölgesi (zemin not rengi). */
+  /** Dashboard boş durum kartı */
+  .dashboard-empty-premium {
+    border: 1px solid color-mix(in srgb, var(--color-border) 76%, var(--color-bg));
+    background: linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--color-primary) 3%, var(--color-card)) 0%,
+      var(--color-card) 60%,
+      color-mix(in srgb, var(--color-bg) 28%, var(--color-card)) 100%
+    );
+  }
+
+  /** Ana panel: bağımsız not + hatırlatma — hafif kart gölgesi (zemin not rengi). */
   .dashboard-note-card-surface {
     box-shadow:
-      0 1px 0 0 rgba(15, 23, 42, 0.045),
-      0 5px 14px -4px rgba(15, 23, 42, 0.06);
+      0 1px 1px color-mix(in srgb, var(--color-text) 3%, transparent),
+      0 4px 12px -5px color-mix(in srgb, var(--color-text) 6%, transparent);
+  }
+
+  /** Üst şerit — içerikten ince ayrım (tek çizgi) */
+  .app-shell-header {
+    background: color-mix(in srgb, var(--color-header) 90%, #ffffff 10%);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 48%, var(--color-bg));
+  }
+
+  /** Form/düzenleme modal gövdesi: large-screen'de kontrollü boyut, küçük ekranda tam uyum. */
+  .ui-fluid-modal {
+    width: min(100%, 52rem);
+    max-height: min(90vh, 48rem);
+  }
+
+  @media (min-width: 1440px) {
+    .ui-fluid-modal {
+      width: min(75vw, 46rem);
+      max-height: min(84vh, 44rem);
+    }
+  }
+
+  /**
+   * Not 5: Dashboard fullscreen / large-screen polish.
+   * 1440+ ve 1600+ ekranlarda içerik genişliği, panel oranı ve boşluk dengesi.
+   */
+  .dashboard-page-root {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 1320px;
+  }
+
+  @media (min-width: 1440px) {
+    .dashboard-page-root {
+      max-width: 1480px;
+      gap: clamp(1.5rem, 1vw, 1.9rem);
+    }
+
+    .dashboard-cta-row {
+      min-height: 6.25rem;
+      padding: clamp(1.25rem, 0.9vw, 1.35rem) clamp(1.5rem, 1.1vw, 1.7rem);
+      gap: clamp(0.95rem, 0.8vw, 1.1rem);
+    }
+
+    .dashboard-top-metrics-grid {
+      gap: clamp(1rem, 0.9vw, 1.35rem);
+    }
+
+    .dash-premium-metric {
+      min-height: 6rem;
+      padding: 1rem 1.05rem;
+    }
+
+    .dashboard-main-grid {
+      gap: clamp(1.2rem, 1vw, 1.6rem);
+      grid-template-columns: repeat(4, minmax(255px, 1fr));
+      align-items: stretch;
+    }
+
+    .dashboard-page-root .dash-theme-panel,
+    .dashboard-page-root .dash-theme-panel--light,
+    .dashboard-page-root .dash-theme-panel--strong {
+      padding: 1.65rem;
+    }
+
+    .dashboard-main-grid > section {
+      height: 100%;
+    }
+
+    .dash-panel-section-title {
+      font-size: 1.375rem;
+    }
+  }
+
+  @media (min-width: 1600px) {
+    .dashboard-page-root {
+      max-width: 1560px;
+      gap: clamp(1.8rem, 1.2vw, 2.05rem);
+    }
+
+    .dashboard-cta-row {
+      min-height: 6.75rem;
+      padding: clamp(1.4rem, 0.9vw, 1.5rem) clamp(1.7rem, 1.2vw, 1.9rem);
+    }
+
+    .dashboard-top-metrics-grid {
+      gap: clamp(1.25rem, 1vw, 1.5rem);
+    }
+
+    .dash-premium-metric {
+      min-height: 6.35rem;
+      padding: 1.1rem 1.2rem;
+    }
+
+    .dashboard-main-grid {
+      gap: clamp(1.55rem, 1.15vw, 1.85rem);
+      grid-template-columns: repeat(4, minmax(270px, 1fr));
+    }
+
+    .dashboard-page-root .dash-theme-panel,
+    .dashboard-page-root .dash-theme-panel--light,
+    .dashboard-page-root .dash-theme-panel--strong {
+      padding: 1.85rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dash-premium-metric,
+    .dash-premium-metric:hover,
+    .dash-theme-panel,
+    .dash-theme-panel:hover,
+    .dash-theme-panel--light,
+    .dash-theme-panel--light:hover,
+    .dash-theme-panel--strong,
+    .dash-theme-panel--strong:hover {
+      transform: none;
+      transition-duration: 0.01ms;
+    }
   }
 }

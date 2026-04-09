@@ -1,12 +1,31 @@
 {
   "name": "smart-client-planner",
-  "version": "1.0.0",
+  "version": "1.1.0",
+  "main": "dist-electron/main.js",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "prisma generate && next build",
+    "predev": "node scripts/validate-dev-env.mjs && node scripts/prisma-generate-try.mjs",
+    "prebuild": "node scripts/validate-dev-env.mjs",
+    "dev": "next dev --turbopack -p 3022 -H 0.0.0.0",
+    "dev:fast": "next dev -p 3022 -H 0.0.0.0",
+    "dev:bare": "next dev --turbopack -p 3022 -H 0.0.0.0",
+    "dev:stop": "node scripts/stop-dev-locks.mjs",
+    "cache:clear": "node scripts/clear-next-cache.mjs",
+    "pre-release": "node scripts/pre-release.mjs",
+    "build": "node scripts/prisma-generate-try.mjs && next build",
+    "desktop:prebuild": "npm run build && node scripts/prepare-desktop.mjs && node scripts/prepare-desktop-db.mjs",
+    "desktop:dev": "concurrently -k \"npm:dev:fast\" \"npm:electron:dev\"",
+    "desktop:build": "npm run desktop:prebuild && npm run electron:build && cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --win nsis",
+    "electron:dev": "npm run electron:build && wait-on tcp:3022 && cross-env NODE_ENV=development electron .",
+    "electron:build": "tsc -p tsconfig.electron.json",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "release:check": "npm run lint && node scripts/prisma-generate-try.mjs && npx tsc --noEmit && vitest run",
+    "release:check:full": "npm run release:check && npm run build",
+    "check": "npm run lint && npm run build",
+    "security:audit": "npm audit --audit-level=high",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts"
@@ -16,14 +35,16 @@
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.3",
+    "exceljs": "^4.4.0",
     "i18next": "^24.2.3",
     "lucide-react": "^0.511.0",
-    "next": "^15.2.4",
+    "next": "15.2.9",
     "pdfmake": "^0.3.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.5.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
   "engines": {
@@ -36,13 +57,54 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^37.4.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^9.21.0",
-    "eslint-config-next": "^15.2.4",
+    "eslint-config-next": "15.2.9",
     "postcss": "^8.5.3",
     "prisma": "^6.5.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.2.4",
+    "wait-on": "^9.0.4"
+  },
+  "build": {
+    "appId": "com.smartclientplanner.desktop",
+    "productName": "Smart Client Planner",
+    "asarUnpack": [
+      ".next/standalone/**"
+    ],
+    "directories": {
+      "output": "dist-desktop"
+    },
+    "files": [
+      "dist-electron/**/*",
+      ".next/standalone/**/*",
+      ".next/static/**/*",
+      "public/**/*",
+      "desktop-template.db",
+      "package.json",
+      "prisma/**/*"
+    ],
+    "extraMetadata": {
+      "main": "dist-electron/main.js"
+    },
+    "publish": [],
+    "win": {
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false,
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": false
+    }
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

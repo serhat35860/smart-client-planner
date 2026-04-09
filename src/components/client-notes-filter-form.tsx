@@ -61,7 +61,7 @@ export function ClientNotesFilterForm({
   }
 
   return (
-    <form onSubmit={apply} className="my-4 grid gap-2 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2">
+    <form onSubmit={apply} className="my-4 grid gap-2 rounded-2xl bg-theme-card p-4 shadow-sm sm:grid-cols-2">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -96,7 +96,7 @@ export function ClientNotesFilterForm({
       <div className="sm:col-span-2 flex justify-end">
         <button
           type="submit"
-          className="rounded-xl px-4 py-2 text-sm text-[var(--ui-accent-contrast)]"
+          className="rounded-xl px-4 py-2 text-button font-medium text-[var(--ui-accent-contrast)]"
           style={{ backgroundColor: "var(--ui-accent)" }}
         >
           {t("filter")}

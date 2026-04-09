@@ -19,14 +19,14 @@ export function RemindBeforeSelect({
 }) {
   const { t } = useTranslation();
   return (
-    <label className="block text-sm text-slate-700">
-      <span className={cn("mb-1 block text-xs font-semibold text-slate-900", labelClassName)}>{t("remind_before_label")}</span>
+    <label className="block text-body text-theme-text">
+      <span className={cn("mb-1 block text-xs font-medium text-theme-text", labelClassName)}>{t("remind_before_label")}</span>
       <select
         id={id}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-[var(--ui-accent)] disabled:opacity-60"
+        className="w-full rounded-xl border border-theme-border bg-theme-card px-3 py-2 text-sm outline-none focus:border-[var(--ui-accent)] disabled:opacity-60"
       >
         {REMIND_BEFORE_MINUTES_OPTIONS.map((m) => (
           <option key={m} value={m}>

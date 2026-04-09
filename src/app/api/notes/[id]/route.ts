@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { canEditOwnedResource, canViewByCreatorOrMention } from "@/lib/access-policy";
 import { creatorSelect } from "@/lib/creator-preview";
 import { nextEditedByOtherMember } from "@/lib/edited-by-other-member";
+import { AuditEventType } from "@/lib/audit-event-types";
 import { replaceNoteMentions } from "@/lib/replace-note-mentions";
 import { requireWorkspace } from "@/lib/workspace";
+import { logWorkspaceActivity } from "@/lib/workspace-audit";
+import { readJsonBody } from "@/lib/read-json";
 
 const colorSchema = z
   .string()
@@ -21,18 +25,43 @@ const patchSchema = z.object({
   clientId: z.union([z.string().min(1), z.null()]).optional()
 });
 
+function notePatchMetaKeys(body: z.infer<typeof patchSchema>) {
+  const keys: string[] = [];
+  if (body.title !== undefined) keys.push("title");
+  if (body.content !== undefined) keys.push("content");
+  if (body.tags !== undefined) keys.push("tags");
+  if (body.mentionedUserIds !== undefined) keys.push("mentionedUserIds");
+  if (body.nextActionDate !== undefined) keys.push("nextActionDate");
+  if (body.remindBeforeMinutes !== undefined) keys.push("remindBeforeMinutes");
+  if (body.color !== undefined) keys.push("color");
+  if (body.clientId !== undefined) keys.push("clientId");
+  return keys;
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const parsed = patchSchema.safeParse(await req.json());
+  const body = await readJsonBody(req);
+  if (!body.ok) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  const parsed = patchSchema.safeParse(body.body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
   const existing = await prisma.note.findFirst({
     where: { id, workspaceId: ctx.workspace.id },
-    include: { task: true }
+    include: { task: true, mentions: { select: { userId: true } } }
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const canView = canViewByCreatorOrMention({
+    role: ctx.role,
+    currentUserId: ctx.user.id,
+    createdByUserId: existing.createdByUserId,
+    mentionedUserIds: existing.mentions.map((m) => m.userId)
+  });
+  if (!canView) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canEditOwnedResource(ctx.role, existing.createdByUserId, ctx.user.id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   let nextClientId: string | null | undefined = undefined;
   if (parsed.data.clientId !== undefined) {
@@ -136,15 +165,44 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updatedBy: { select: creatorSelect }
     }
   });
+  await logWorkspaceActivity(ctx, {
+    eventType: AuditEventType.NOTE_UPDATED,
+    entityType: "note",
+    entityId: id,
+    metaJson: { keys: notePatchMetaKeys(parsed.data) },
+    req
+  });
   return NextResponse.json(note);
 }
 
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
+  const existing = await prisma.note.findFirst({
+    where: { id, workspaceId: ctx.workspace.id },
+    select: { createdByUserId: true, title: true, mentions: { select: { userId: true } } }
+  });
+  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const canView = canViewByCreatorOrMention({
+    role: ctx.role,
+    currentUserId: ctx.user.id,
+    createdByUserId: existing.createdByUserId,
+    mentionedUserIds: existing.mentions.map((m) => m.userId)
+  });
+  if (!canView) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canEditOwnedResource(ctx.role, existing.createdByUserId, ctx.user.id)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const result = await prisma.note.deleteMany({ where: { id, workspaceId: ctx.workspace.id } });
   if (result.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  await logWorkspaceActivity(ctx, {
+    eventType: AuditEventType.NOTE_DELETED,
+    entityType: "note",
+    entityId: id,
+    metaJson: { title: existing.title },
+    req
+  });
   return NextResponse.json({ ok: true });
 }

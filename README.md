@@ -7,7 +7,7 @@ Modern, scalable, sticky-note inspired mini CRM for tracking customer interactio
 ## Tech Stack
 
 - Next.js (App Router, React, TypeScript)
-- Prisma + PostgreSQL
+- Prisma + SQLite (dev) / PostgreSQL (production optional)
 - Tailwind CSS
 - Cookie-based email/password auth
 
@@ -39,12 +39,15 @@ cp .env.example .env
 
 Windows (PowerShell): `Copy-Item .env.example .env`
 
-3. Ensure PostgreSQL is running and `DATABASE_URL` is valid.
-
-4. Generate Prisma client and run migration:
+3. Validate development environment variables:
 
 ```bash
-npm run prisma:generate
+npm run predev
+```
+
+4. Run migration:
+
+```bash
 npm run prisma:migrate -- --name init
 ```
 
@@ -58,6 +61,12 @@ npm run prisma:seed
 
 ```bash
 npm run dev
+```
+
+If you need fallback without Turbopack:
+
+```bash
+npm run dev:fast
 ```
 
 Open [http://localhost:3000](http://localhost:3000).

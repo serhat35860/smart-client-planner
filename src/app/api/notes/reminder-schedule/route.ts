@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
+import type { TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireWorkspace } from "@/lib/workspace";
+import { requireWorkspace, workspaceNotesVisibleWhere, workspaceTasksVisibleWhere } from "@/lib/workspace";
+
+const OPEN_TASK_STATUSES: TaskStatus[] = ["PENDING", "FAILED"];
 
 /** Not ve bekleyen görevler — istemci uyarı zamanını hesaplar (`at` = olay anı). */
 export async function GET() {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const visibleNoteWhere = workspaceNotesVisibleWhere(ctx.workspace.id, ctx.role, ctx.user.id);
+  const visibleTaskWhere = workspaceTasksVisibleWhere(ctx.workspace.id, ctx.role, ctx.user.id);
 
   const [notes, tasks] = await Promise.all([
     prisma.note.findMany({
       where: {
-        workspaceId: ctx.workspace.id,
+        ...visibleNoteWhere,
         nextActionDate: { not: null }
       },
       select: {
@@ -25,12 +30,14 @@ export async function GET() {
       orderBy: { createdAt: "desc" }
     }),
     prisma.task.findMany({
-      where: { workspaceId: ctx.workspace.id, status: "PENDING" },
+      where: { ...visibleTaskWhere, status: { in: OPEN_TASK_STATUSES } },
       select: {
         id: true,
         title: true,
         deadline: true,
         remindBeforeMinutes: true,
+        assigneeUserId: true,
+        acceptedAt: true,
         createdAt: true,
         client: { select: { companyName: true } }
       },
@@ -58,9 +65,14 @@ export async function GET() {
         id: t.id,
         title: t.title,
         content: "",
-        at: t.deadline.toISOString(),
-        remindBeforeMinutes: t.remindBeforeMinutes ?? 0,
-        clientName: t.client.companyName
+        at:
+          t.assigneeUserId === ctx.user.id && !t.acceptedAt
+            ? t.createdAt.toISOString()
+            : t.deadline.toISOString(),
+        remindBeforeMinutes:
+          t.assigneeUserId === ctx.user.id && !t.acceptedAt ? 0 : (t.remindBeforeMinutes ?? 0),
+        clientName: t.client?.companyName ?? null,
+        assignmentPrompt: Boolean(t.assigneeUserId === ctx.user.id && !t.acceptedAt)
       }
     }))
   ].sort((a, b) => b.createdAtMs - a.createdAtMs);

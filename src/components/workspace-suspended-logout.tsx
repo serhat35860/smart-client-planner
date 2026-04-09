@@ -16,7 +16,7 @@ export function WorkspaceSuspendedLogout() {
     <button
       type="button"
       onClick={() => void out()}
-      className="rounded-xl border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+      className="rounded-xl border border-theme-border px-4 py-2 text-button font-medium hover:bg-theme-subtle"
     >
       {t("logout")}
     </button>

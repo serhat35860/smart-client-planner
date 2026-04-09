@@ -3,6 +3,7 @@ import { creatorSelect } from "@/lib/creator-preview";
 
 export const taskRowInclude = {
   client: true,
+  assignee: { select: creatorSelect },
   createdBy: { select: creatorSelect },
   updatedBy: { select: creatorSelect },
   mentions: { include: { user: { select: { id: true, name: true, email: true } } } }

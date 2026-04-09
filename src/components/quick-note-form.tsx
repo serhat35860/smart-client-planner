@@ -16,6 +16,7 @@ export function QuickNoteForm({
   reminderRequired = false,
   saveButtonKey = "save_note_quickly",
   sectionHeadingsClass,
+  stickyFooter = false,
   /** İsteğe bağlı tarih alanı başlığı (varsayılan: `next`). */
   optionalNextDateLabelKey
 }: {
@@ -26,6 +27,8 @@ export function QuickNoteForm({
   saveButtonKey?: "save_note_quickly" | "save_reminder";
   /** Alan başlıkları (ör. `uppercase tracking-wide`). */
   sectionHeadingsClass?: string;
+  /** Modal içinde alt aksiyon satırını sabit tutar. */
+  stickyFooter?: boolean;
   optionalNextDateLabelKey?: string;
 }) {
   const { t } = useTranslation();
@@ -96,12 +99,12 @@ export function QuickNoteForm({
       <div
         className={cn(
           "flex items-center gap-2",
-          frameReminderSection && "border-b border-slate-200/90 pb-2"
+          frameReminderSection && "border-b border-theme-border/90 pb-2"
         )}
       >
         {frameReminderSection ? (
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[var(--ui-accent)] ring-1 ring-[var(--ui-accent)]/25"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-theme-subtle-hover text-[var(--ui-accent)] ring-1 ring-[var(--ui-accent)]/25"
             aria-hidden
           >
             <CalendarClock className="h-4 w-4" strokeWidth={2} />
@@ -109,8 +112,8 @@ export function QuickNoteForm({
         ) : null}
         <span
           className={cn(
-            "text-xs font-semibold text-slate-900",
-            frameReminderSection && "text-[13px] tracking-wide text-slate-800",
+            "text-xs font-medium text-theme-text",
+            frameReminderSection && "text-[13px] tracking-wide text-theme-text",
             sectionHeadingsClass
           )}
         >
@@ -127,42 +130,47 @@ export function QuickNoteForm({
   );
 
   return (
-    <form onSubmit={submit} className="space-y-2 rounded-2xl bg-white p-4 shadow-sm">
-      <input placeholder={t("optional_title")} value={title} onChange={(e) => setTitle(e.target.value)} className="w-full" />
-      <textarea
-        placeholder={clientId ? t("quick_note_placeholder") : t("standalone_quick_note_placeholder")}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="h-24 w-full resize-y"
-        required
-      />
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <input placeholder={t("tags_placeholder")} value={tags} onChange={(e) => setTags(e.target.value)} />
-        {frameReminderSection ? (
-          <div className="rounded-xl border-2 border-[var(--ui-accent)]/35 bg-slate-50 p-3 shadow-sm ring-1 ring-[var(--ui-accent)]/15 sm:col-span-1">
-            <div className="space-y-2">
-              {dateFields}
-              {showRemindBefore ? <div className="border-t border-slate-200/80 pt-2">{remindBeforeRow}</div> : null}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-1 sm:col-span-1">{dateFields}</div>
-        )}
-        <NoteBackgroundPicker
-          color={color}
-          setColor={setColor}
-          customColor={customColor}
-          setCustomColor={setCustomColor}
-          headingClassName={sectionHeadingsClass}
+    <form
+      onSubmit={submit}
+      className={cn("rounded-2xl bg-theme-card p-4 shadow-sm", stickyFooter ? "flex h-full min-h-0 flex-col" : "space-y-2")}
+    >
+      <div className={cn(stickyFooter ? "min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" : "space-y-2")}>
+        <input placeholder={t("optional_title")} value={title} onChange={(e) => setTitle(e.target.value)} className="w-full" />
+        <textarea
+          placeholder={clientId ? t("quick_note_placeholder") : t("standalone_quick_note_placeholder")}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="h-24 w-full resize-y"
+          required
         />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <input placeholder={t("tags_placeholder")} value={tags} onChange={(e) => setTags(e.target.value)} />
+          {frameReminderSection ? (
+            <div className="rounded-xl border-2 border-[var(--ui-accent)]/35 bg-theme-subtle p-3 shadow-sm ring-1 ring-[var(--ui-accent)]/15 sm:col-span-1">
+              <div className="space-y-2">
+                {dateFields}
+                {showRemindBefore ? <div className="border-t border-theme-border/80 pt-2">{remindBeforeRow}</div> : null}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1 sm:col-span-1">{dateFields}</div>
+          )}
+          <NoteBackgroundPicker
+            color={color}
+            setColor={setColor}
+            customColor={customColor}
+            setCustomColor={setCustomColor}
+            headingClassName={sectionHeadingsClass}
+          />
+        </div>
+        {!frameReminderSection && showRemindBefore ? remindBeforeRow : null}
+        <NoteMemberPicker value={mentionedUserIds} onChange={setMentionedUserIds} labelClassName={sectionHeadingsClass} />
       </div>
-      {!frameReminderSection && showRemindBefore ? remindBeforeRow : null}
-      <NoteMemberPicker value={mentionedUserIds} onChange={setMentionedUserIds} labelClassName={sectionHeadingsClass} />
-      <div className="flex flex-wrap items-center gap-2 pt-1">
+      <div className={cn("flex flex-wrap items-center gap-2", stickyFooter ? "mt-2 shrink-0 border-t border-theme-border pt-3" : "pt-1")}>
         <button
           type="submit"
           disabled={loading}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
+          className="rounded-xl bg-theme-primary px-4 py-2 text-button font-medium text-theme-on-primary hover:bg-theme-primary-hover"
         >
           {loading ? t("saving") : t(saveButtonKey)}
         </button>
@@ -171,7 +179,7 @@ export function QuickNoteForm({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="rounded-xl border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
+            className="rounded-xl border border-theme-border px-4 py-2 text-button font-medium hover:bg-theme-subtle"
           >
             {t("cancel")}
           </button>

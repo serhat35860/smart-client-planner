@@ -27,17 +27,17 @@ export function LanguageSwitcher() {
   }
 
   return (
-    <div className="flex items-center gap-1 rounded-lg border border-slate-200 p-1">
-      <span className="px-2 text-xs text-slate-500">{t("language")}</span>
+    <div className="flex items-center gap-1 rounded-lg border border-theme-border p-1">
+      <span className="px-2 text-caption font-medium text-theme-muted">{t("language")}</span>
       <button
         onClick={() => changeLanguage("tr")}
-        className={`rounded-md px-2 py-1 text-xs ${lang === "tr" ? "bg-slate-900 text-white" : "hover:bg-slate-100"}`}
+        className={`rounded-md px-2 py-1 text-caption font-medium ${lang === "tr" ? "bg-theme-primary text-theme-on-primary" : "text-theme-text hover:bg-theme-subtle-hover"}`}
       >
         {t("lang_tr")}
       </button>
       <button
         onClick={() => changeLanguage("en")}
-        className={`rounded-md px-2 py-1 text-xs ${lang === "en" ? "bg-slate-900 text-white" : "hover:bg-slate-100"}`}
+        className={`rounded-md px-2 py-1 text-caption font-medium ${lang === "en" ? "bg-theme-primary text-theme-on-primary" : "text-theme-text hover:bg-theme-subtle-hover"}`}
       >
         {t("lang_en")}
       </button>

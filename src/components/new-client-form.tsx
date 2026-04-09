@@ -14,12 +14,14 @@ export function NewClientForm({
   onSaved,
   onCreated,
   className,
-  hideHeading
+  hideHeading,
+  stickyFooter = false
 }: {
   onSaved?: () => void;
   onCreated?: (client: { id: string }) => void;
   className?: string;
   hideHeading?: boolean;
+  stickyFooter?: boolean;
 }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
@@ -78,38 +80,48 @@ export function NewClientForm({
   }
 
   return (
-    <form onSubmit={submit} className={cn("space-y-2 rounded-2xl bg-white p-4 shadow-sm", className)}>
-      {hideHeading ? null : <h3 className="text-sm font-semibold">{t("add_client")}</h3>}
-      <input
-        placeholder={t("company_name")}
-        value={form.companyName}
-        onChange={(e) => setForm({ ...form, companyName: e.target.value })}
-        required
-      />
-      <PrimaryContactWithPlus
-        contactPerson={form.contactPerson}
-        phone={form.phone}
-        onContactPerson={(v) => setForm({ ...form, contactPerson: v })}
-        onPhone={(v) => setForm({ ...form, phone: v })}
-        onAddExtra={addExtraContact}
-        addDisabled={!canAddExtraContact(extraContacts.length)}
-      />
-      <ClientExtraContactRows contacts={extraContacts} onChange={setExtraContacts} />
-      <input placeholder={t("email")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-      <input placeholder={t("sector")} value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
-      <textarea
-        placeholder={t("general_notes")}
-        value={form.generalNotes}
-        onChange={(e) => setForm({ ...form, generalNotes: e.target.value })}
-      />
-      <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-        <option value="ACTIVE">{t("active")}</option>
-        <option value="PASSIVE">{t("passive")}</option>
-        <option value="POTENTIAL">{t("potential")}</option>
-      </select>
-      <button disabled={loading} className="w-full rounded-xl bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-700">
-        {loading ? t("saving") : t("create_client")}
-      </button>
+    <form
+      onSubmit={submit}
+      className={cn("rounded-2xl bg-theme-card p-4 shadow-sm", stickyFooter ? "flex h-full min-h-0 flex-col" : "space-y-2", className)}
+    >
+      <div className={cn(stickyFooter ? "min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" : "space-y-2")}>
+        {hideHeading ? null : <h3 className="text-sm font-semibold">{t("add_client")}</h3>}
+        <input
+          placeholder={t("company_name")}
+          value={form.companyName}
+          onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+          required
+        />
+        <PrimaryContactWithPlus
+          contactPerson={form.contactPerson}
+          phone={form.phone}
+          onContactPerson={(v) => setForm({ ...form, contactPerson: v })}
+          onPhone={(v) => setForm({ ...form, phone: v })}
+          onAddExtra={addExtraContact}
+          addDisabled={!canAddExtraContact(extraContacts.length)}
+        />
+        <ClientExtraContactRows contacts={extraContacts} onChange={setExtraContacts} />
+        <input placeholder={t("email")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        <input placeholder={t("sector")} value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
+        <textarea
+          placeholder={t("general_notes")}
+          value={form.generalNotes}
+          onChange={(e) => setForm({ ...form, generalNotes: e.target.value })}
+        />
+        <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+          <option value="ACTIVE">{t("active")}</option>
+          <option value="PASSIVE">{t("passive")}</option>
+          <option value="POTENTIAL">{t("potential")}</option>
+        </select>
+      </div>
+      <div className={cn(stickyFooter ? "mt-2 shrink-0 border-t border-theme-border pt-3" : "")}>
+        <button
+          disabled={loading}
+          className="w-full rounded-xl bg-theme-primary px-3 py-2 text-button font-medium text-theme-on-primary hover:bg-theme-primary-hover"
+        >
+          {loading ? t("saving") : t("create_client")}
+        </button>
+      </div>
     </form>
   );
 }

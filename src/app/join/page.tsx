@@ -16,11 +16,11 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-md rounded-2xl bg-white p-6 shadow-sm">
-        <h1 className="mb-2 text-lg font-semibold">{t("join_title")}</h1>
-        <p className="text-sm text-slate-600">{t("join_logged_in_hint")}</p>
-        <p className="mt-4 text-sm">
-          <Link href="/team" className="font-medium text-[var(--ui-accent)] underline">
+      <div className="mx-auto max-w-md rounded-2xl bg-theme-card p-6 shadow-sm">
+        <h1 className="mb-2">{t("join_title")}</h1>
+        <p className="text-body-lg text-theme-muted">{t("join_logged_in_hint")}</p>
+        <p className="mt-4 text-body">
+          <Link href="/team" className="font-medium text-theme-primary underline">
             {t("team")}
           </Link>
         </p>

@@ -124,28 +124,28 @@ export function QuickNoteActionModal() {
       <button
         type="button"
         onClick={openModal}
-        className="flex h-full min-h-[5.25rem] w-full flex-col rounded-2xl bg-slate-900 p-3 text-left text-white shadow-card-lift-dark transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+        className="dash-premium-metric flex h-full min-h-[5.25rem] w-full flex-col bg-theme-primary p-3.5 text-left text-theme-on-primary hover:bg-theme-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-on-primary/50"
       >
-        <p className="shrink-0 text-xs font-normal uppercase tracking-wide leading-tight text-slate-100">{t("quick_action")}</p>
-        <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-end">
-          <p className="text-sm font-bold uppercase tracking-wide leading-snug text-white">{t("add_note_fast")}</p>
+        <p className="shrink-0 text-label font-medium uppercase tracking-wide leading-tight text-theme-on-primary/90">{t("quick_action")}</p>
+        <div className="mt-1 flex min-h-0 flex-1 flex-col justify-end">
+          <p className="text-body-lg font-medium uppercase tracking-wide leading-snug text-theme-on-primary">{t("add_note_fast")}</p>
         </div>
       </button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-theme-text/40 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="quick-note-modal-title"
         >
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="border-b border-slate-200 p-4">
-              <h2 id="quick-note-modal-title" className={cn("text-lg font-semibold", quickNoteModalHeadingClass)}>
+          <div className="flex max-h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
+            <div className="border-b border-theme-border p-4">
+              <h2 id="quick-note-modal-title" className={cn("text-h3 font-semibold", quickNoteModalHeadingClass)}>
                 {modalTitle}
               </h2>
               {(step === "note" || step === "reminder_note" || step === "task_form") && selectedClient ? (
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-body text-theme-muted">
                   {selectedClient.companyName} — {selectedClient.contactPerson}
                 </p>
               ) : null}
@@ -157,65 +157,65 @@ export function QuickNoteActionModal() {
                   <button
                     type="button"
                     onClick={() => goPick("note")}
-                    className="rounded-2xl border-2 border-slate-200 p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-slate-50"
+                    className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
-                    <p className={cn("font-semibold text-slate-900", quickNoteModalHeadingClass)}>{t("quick_note_option_client")}</p>
-                    <p className="mt-1 text-sm text-slate-600">{t("quick_note_option_client_desc")}</p>
+                    <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("quick_note_option_client")}</p>
+                    <p className="mt-1 text-body text-theme-muted">{t("quick_note_option_client_desc")}</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStep("standalone")}
-                    className="rounded-2xl border-2 border-slate-200 p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-slate-50"
+                    className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
-                    <p className={cn("font-semibold text-slate-900", quickNoteModalHeadingClass)}>{t("quick_note_option_full")}</p>
-                    <p className="mt-1 text-sm text-slate-600">{t("quick_note_option_full_desc")}</p>
+                    <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("quick_note_option_full")}</p>
+                    <p className="mt-1 text-body text-theme-muted">{t("quick_note_option_full_desc")}</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStep("reminder_choose")}
-                    className="rounded-2xl border-2 border-slate-200 p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-slate-50"
+                    className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
-                    <p className={cn("font-semibold text-slate-900", quickNoteModalHeadingClass)}>{t("quick_option_reminder")}</p>
-                    <p className="mt-1 text-sm text-slate-600">{t("quick_option_reminder_desc")}</p>
+                    <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("quick_option_reminder")}</p>
+                    <p className="mt-1 text-body text-theme-muted">{t("quick_option_reminder_desc")}</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => goPick("task")}
-                    className="rounded-2xl border-2 border-slate-200 p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-slate-50"
+                    className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
-                    <p className={cn("font-semibold text-slate-900", quickNoteModalHeadingClass)}>{t("quick_option_task")}</p>
-                    <p className="mt-1 text-sm text-slate-600">{t("quick_option_task_desc")}</p>
+                    <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("quick_option_task")}</p>
+                    <p className="mt-1 text-body text-theme-muted">{t("quick_option_task_desc")}</p>
                   </button>
                 </div>
               ) : null}
 
               {step === "reminder_choose" ? (
                 <div className="grid gap-3">
-                  <button type="button" onClick={() => setStep("menu")} className="text-left text-sm text-slate-600 hover:underline">
+                  <button type="button" onClick={() => setStep("menu")} className="text-left text-body text-theme-muted hover:underline">
                     ← {t("back")}
                   </button>
                   <button
                     type="button"
                     onClick={() => goPick("reminder")}
-                    className="rounded-2xl border-2 border-slate-200 p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-slate-50"
+                    className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
-                    <p className={cn("font-semibold text-slate-900", quickNoteModalHeadingClass)}>{t("reminder_with_client")}</p>
-                    <p className="mt-1 text-sm text-slate-600">{t("reminder_with_client_desc")}</p>
+                    <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("reminder_with_client")}</p>
+                    <p className="mt-1 text-body text-theme-muted">{t("reminder_with_client_desc")}</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => setStep("reminder_standalone")}
-                    className="rounded-2xl border-2 border-slate-200 p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-slate-50"
+                    className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
-                    <p className={cn("font-semibold text-slate-900", quickNoteModalHeadingClass)}>{t("reminder_standalone_short")}</p>
-                    <p className="mt-1 text-sm text-slate-600">{t("reminder_standalone_short_desc")}</p>
+                    <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("reminder_standalone_short")}</p>
+                    <p className="mt-1 text-body text-theme-muted">{t("reminder_standalone_short_desc")}</p>
                   </button>
                 </div>
               ) : null}
 
               {step === "pick" ? (
                 <div className="space-y-3">
-                  <button type="button" onClick={backFromPick} className="text-sm text-slate-600 hover:underline">
+                  <button type="button" onClick={backFromPick} className="text-body text-theme-muted hover:underline">
                     ← {t("back")}
                   </button>
                   <MentionAtCombo
@@ -239,9 +239,9 @@ export function QuickNoteActionModal() {
                     autoFocus
                   />
                   {loading ? (
-                    <p className="text-center text-sm text-slate-500">{t("loading")}</p>
+                    <p className="text-center text-body text-theme-muted">{t("loading")}</p>
                   ) : clients.length === 0 ? (
-                    <p className="text-center text-sm text-slate-500">{t("no_clients_found")}</p>
+                    <p className="text-center text-body text-theme-muted">{t("no_clients_found")}</p>
                   ) : (
                     <ul className="space-y-1">
                       {clients.map((c) => (
@@ -249,10 +249,10 @@ export function QuickNoteActionModal() {
                           <button
                             type="button"
                             onClick={() => onClientPicked(c)}
-                            className="w-full rounded-xl border border-transparent px-3 py-3 text-left hover:border-slate-200 hover:bg-slate-50"
+                            className="w-full rounded-xl border border-transparent px-3 py-3 text-left hover:border-theme-border hover:bg-theme-subtle"
                           >
                             <span className="block font-medium">{c.companyName}</span>
-                            <span className="block text-sm text-slate-600">{c.contactPerson}</span>
+                            <span className="block text-body text-theme-muted">{c.contactPerson}</span>
                           </button>
                         </li>
                       ))}
@@ -269,13 +269,14 @@ export function QuickNoteActionModal() {
                       setSelectedClient(null);
                       setStep("pick");
                     }}
-                    className="text-sm text-slate-600 hover:underline"
+                    className="text-body text-theme-muted hover:underline"
                   >
                     ← {t("back")}
                   </button>
                   <QuickNoteForm
                     clientId={selectedClient.id}
                     sectionHeadingsClass={quickNoteModalHeadingClass}
+                    stickyFooter
                     onCancel={closeAll}
                     onSaved={() => {
                       router.refresh();
@@ -293,16 +294,17 @@ export function QuickNoteActionModal() {
                       setSelectedClient(null);
                       setStep("pick");
                     }}
-                    className="text-sm text-slate-600 hover:underline"
+                    className="text-body text-theme-muted hover:underline"
                   >
                     ← {t("back")}
                   </button>
-                  <p className="text-sm text-slate-600">{t("reminder_form_hint")}</p>
+                  <p className="text-body text-theme-muted">{t("reminder_form_hint")}</p>
                   <QuickNoteForm
                     clientId={selectedClient.id}
                     reminderRequired
                     saveButtonKey="save_reminder"
                     sectionHeadingsClass={quickNoteModalHeadingClass}
+                    stickyFooter
                     onCancel={closeAll}
                     onSaved={() => {
                       router.refresh();
@@ -320,13 +322,14 @@ export function QuickNoteActionModal() {
                       setSelectedClient(null);
                       setStep("pick");
                     }}
-                    className="text-sm text-slate-600 hover:underline"
+                    className="text-body text-theme-muted hover:underline"
                   >
                     ← {t("back")}
                   </button>
                   <QuickTaskForm
                     clientId={selectedClient.id}
                     sectionHeadingsClass={quickNoteModalHeadingClass}
+                    stickyFooter
                     onCancel={closeAll}
                     onSaved={() => {
                       router.refresh();
@@ -338,12 +341,13 @@ export function QuickNoteActionModal() {
 
               {step === "standalone" ? (
                 <div className="space-y-3">
-                  <button type="button" onClick={() => setStep("menu")} className="text-sm text-slate-600 hover:underline">
+                  <button type="button" onClick={() => setStep("menu")} className="text-body text-theme-muted hover:underline">
                     ← {t("back")}
                   </button>
-                  <p className="text-sm text-slate-600">{t("standalone_note_hint")}</p>
+                  <p className="text-body text-theme-muted">{t("standalone_note_hint")}</p>
                   <QuickNoteForm
                     sectionHeadingsClass={quickNoteModalHeadingClass}
+                    stickyFooter
                     onCancel={closeAll}
                     onSaved={() => {
                       router.refresh();
@@ -355,14 +359,15 @@ export function QuickNoteActionModal() {
 
               {step === "reminder_standalone" ? (
                 <div className="space-y-3">
-                  <button type="button" onClick={() => setStep("reminder_choose")} className="text-sm text-slate-600 hover:underline">
+                  <button type="button" onClick={() => setStep("reminder_choose")} className="text-body text-theme-muted hover:underline">
                     ← {t("back")}
                   </button>
-                  <p className="text-sm text-slate-600">{t("reminder_standalone_hint")}</p>
+                  <p className="text-body text-theme-muted">{t("reminder_standalone_hint")}</p>
                   <QuickNoteForm
                     reminderRequired
                     saveButtonKey="save_reminder"
                     sectionHeadingsClass={quickNoteModalHeadingClass}
+                    stickyFooter
                     onCancel={closeAll}
                     onSaved={() => {
                       router.refresh();
@@ -374,8 +379,8 @@ export function QuickNoteActionModal() {
             </div>
 
             {!hideModalFooterCancel ? (
-              <div className="border-t border-slate-200 p-3">
-                <button type="button" onClick={closeAll} className="w-full rounded-xl border px-4 py-2 text-sm">
+              <div className="border-t border-theme-border p-3">
+                <button type="button" onClick={closeAll} className="w-full rounded-xl border px-4 py-2 text-button font-medium">
                   {t("cancel")}
                 </button>
               </div>

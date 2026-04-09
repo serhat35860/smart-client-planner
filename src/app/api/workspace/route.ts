@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { AuditEventType } from "@/lib/audit-event-types";
 import { canManageWorkspace, requireWorkspace, workspaceMembersVisibleWhere } from "@/lib/workspace";
+import { logWorkspaceActivity } from "@/lib/workspace-audit";
+import { readJsonBody } from "@/lib/read-json";
 
 export async function GET() {
   const ctx = await requireWorkspace();
@@ -32,12 +35,23 @@ export async function PATCH(req: Request) {
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!canManageWorkspace(ctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const parsed = patchSchema.safeParse(await req.json());
+  const body = await readJsonBody(req);
+  if (!body.ok) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  const parsed = patchSchema.safeParse(body.body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
 
+  const previousName = ctx.workspace.name;
+  const nextName = parsed.data.name.trim();
   await prisma.workspace.update({
     where: { id: ctx.workspace.id },
-    data: { name: parsed.data.name.trim() }
+    data: { name: nextName }
+  });
+  await logWorkspaceActivity(ctx, {
+    eventType: AuditEventType.WORKSPACE_RENAMED,
+    entityType: "workspace",
+    entityId: ctx.workspace.id,
+    metaJson: { from: previousName, to: nextName },
+    req
   });
   return NextResponse.json({ ok: true });
 }

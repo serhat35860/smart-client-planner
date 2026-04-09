@@ -10,13 +10,6 @@ import { cn } from "@/lib/utils";
 
 const clientPickerModalHeadingClass = "uppercase tracking-wide";
 
-type ApiClient = {
-  id: string;
-  companyName: string;
-  contactPerson: string;
-  status: string;
-};
-
 export function TotalClientsMetric({
   buttonClassName
 }: {
@@ -62,43 +55,45 @@ export function TotalClientsMetric({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "flex h-full min-h-[5.25rem] w-full flex-col rounded-2xl bg-slate-900 p-3 text-left text-white shadow-card-lift-dark transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50",
+          "dash-premium-metric flex h-full min-h-[5.25rem] w-full flex-col bg-theme-primary p-3.5 text-left text-theme-on-primary hover:bg-theme-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-on-primary/50",
           buttonClassName
         )}
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        <p className="shrink-0 text-xs font-normal uppercase tracking-wide leading-tight text-slate-100">
+        <p className="shrink-0 text-label font-medium uppercase tracking-wide leading-tight text-theme-on-primary/90">
           {t("total_clients_tile_eyebrow")}
         </p>
-        <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-end">
-          <p className="text-sm font-bold uppercase tracking-wide leading-snug text-white">{t("total_clients_tile_subtitle")}</p>
+        <div className="mt-1 flex min-h-0 flex-1 flex-col justify-end">
+          <p className="text-body-lg font-medium uppercase tracking-wide leading-snug text-theme-on-primary">
+            {t("total_clients_tile_subtitle")}
+          </p>
         </div>
       </button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-theme-text/40 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="client-picker-title"
         >
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="border-b border-slate-200 p-4">
+          <div className="flex max-h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
+            <div className="border-b border-theme-border p-4">
               <h2
                 id="client-picker-title"
-                className={cn("text-lg font-semibold", clientPickerModalHeadingClass)}
+                className={cn("text-h3 font-semibold", clientPickerModalHeadingClass)}
               >
                 {quickAdd ? t("quick_add_client") : t("client_picker_title")}
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-body text-theme-muted">
                 {quickAdd ? t("quick_add_client_hint") : t("client_picker_subtitle")}
               </p>
               {quickAdd ? (
                 <button
                   type="button"
                   onClick={() => setQuickAdd(false)}
-                  className="mt-3 text-sm text-slate-600 underline hover:text-slate-900"
+                  className="mt-3 text-body text-theme-muted underline hover:text-theme-text"
                 >
                   ← {t("back_to_client_list")}
                 </button>
@@ -128,7 +123,7 @@ export function TotalClientsMetric({
                     type="button"
                     onClick={() => setQuickAdd(true)}
                     className={cn(
-                      "mt-3 w-full rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-50",
+                      "mt-3 w-full rounded-xl border border-dashed border-theme-border px-3 py-2.5 text-button font-medium font-medium text-theme-text transition hover:border-theme-primary hover:bg-theme-subtle",
                       clientPickerModalHeadingClass
                     )}
                   >
@@ -152,9 +147,9 @@ export function TotalClientsMetric({
                   />
                 </div>
               ) : loading ? (
-                <p className="p-4 text-center text-sm text-slate-500">{t("loading")}</p>
+                <p className="p-4 text-center text-body text-theme-muted">{t("loading")}</p>
               ) : clients.length === 0 ? (
-                <p className="p-4 text-center text-sm text-slate-500">{t("no_clients_found")}</p>
+                <p className="p-4 text-center text-body text-theme-muted">{t("no_clients_found")}</p>
               ) : (
                 <ul className="space-y-1">
                   {clients.map((c) => (
@@ -162,21 +157,21 @@ export function TotalClientsMetric({
                       <button
                         type="button"
                         onClick={() => goToClient(c.id)}
-                        className="w-full rounded-xl border border-transparent px-3 py-3 text-left transition hover:border-slate-200 hover:bg-slate-50"
+                        className="w-full rounded-xl border border-transparent px-3 py-3 text-left transition hover:border-theme-border hover:bg-theme-subtle"
                       >
                         <span className="block font-medium">{c.companyName}</span>
-                        <span className="block text-sm text-slate-600">{c.contactPerson}</span>
+                        <span className="block text-body text-theme-muted">{c.contactPerson}</span>
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            <div className="border-t border-slate-200 p-3">
+            <div className="border-t border-theme-border p-3">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="w-full rounded-xl border px-4 py-2 text-sm"
+                className="w-full rounded-xl border px-4 py-2 text-button font-medium"
               >
                 {t("cancel")}
               </button>

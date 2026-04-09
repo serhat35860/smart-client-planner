@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { QuickTaskForm } from "@/components/quick-task-form";
 import { MentionAtCombo } from "@/components/mention-at-combo";
@@ -18,6 +18,8 @@ type Step = "pick" | "task_form";
 export function QuickTaskActionModal() {
   const { t } = useTranslation();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("pick");
   const [selectedClient, setSelectedClient] = useState<ApiClient | null>(null);
@@ -53,6 +55,17 @@ export function QuickTaskActionModal() {
     setOpen(true);
   }
 
+  useEffect(() => {
+    const shouldAutoOpen = searchParams.get("newTask") === "1";
+    if (!shouldAutoOpen || open) return;
+
+    openModal();
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("newTask");
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [open, pathname, router, searchParams]);
+
   function onClientPicked(c: ApiClient) {
     setSelectedClient(c);
     setStep("task_form");
@@ -65,28 +78,28 @@ export function QuickTaskActionModal() {
       <button
         type="button"
         onClick={openModal}
-        className="flex h-full min-h-[5.25rem] w-full flex-col rounded-2xl bg-slate-900 p-3 text-left text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+        className="flex h-full min-h-[5.25rem] w-full flex-col rounded-2xl bg-theme-primary p-3 text-left text-theme-on-primary transition hover:bg-theme-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-theme-on-primary/50"
       >
-        <p className="shrink-0 text-xs font-normal uppercase tracking-wide leading-tight text-slate-100">{t("quick_action")}</p>
-        <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-end">
-          <p className="text-base font-bold uppercase tracking-wide leading-snug text-white">{t("add_task_fast")}</p>
+        <p className="shrink-0 text-label font-medium uppercase tracking-wide leading-tight text-theme-on-primary/90">{t("quick_action")}</p>
+        <div className="mt-1 flex min-h-0 flex-1 flex-col justify-end">
+          <p className="text-body-lg font-medium uppercase tracking-wide leading-snug text-theme-on-primary">{t("add_task_fast")}</p>
         </div>
       </button>
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-theme-text/40 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="quick-task-modal-title"
         >
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="border-b border-slate-200 p-4">
-              <h2 id="quick-task-modal-title" className="text-lg font-semibold">
+          <div className="flex max-h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
+            <div className="border-b border-theme-border p-4">
+              <h2 id="quick-task-modal-title" className="text-h3 font-semibold">
                 {modalTitle}
               </h2>
               {step === "task_form" && selectedClient ? (
-                <p className="mt-1 text-sm text-slate-600">
+                <p className="mt-1 text-body text-theme-muted">
                   {selectedClient.companyName} — {selectedClient.contactPerson}
                 </p>
               ) : null}
@@ -116,9 +129,9 @@ export function QuickTaskActionModal() {
                     autoFocus
                   />
                   {loading ? (
-                    <p className="text-center text-sm text-slate-500">{t("loading")}</p>
+                    <p className="text-center text-body text-theme-muted">{t("loading")}</p>
                   ) : clients.length === 0 ? (
-                    <p className="text-center text-sm text-slate-500">{t("no_clients_found")}</p>
+                    <p className="text-center text-body text-theme-muted">{t("no_clients_found")}</p>
                   ) : (
                     <ul className="space-y-1">
                       {clients.map((c) => (
@@ -126,19 +139,29 @@ export function QuickTaskActionModal() {
                           <button
                             type="button"
                             onClick={() => onClientPicked(c)}
-                            className="w-full rounded-xl border border-transparent px-3 py-3 text-left hover:border-slate-200 hover:bg-slate-50"
+                            className="w-full rounded-xl border border-transparent px-3 py-3 text-left hover:border-theme-border hover:bg-theme-subtle"
                           >
                             <span className="block font-medium">{c.companyName}</span>
-                            <span className="block text-sm text-slate-600">{c.contactPerson}</span>
+                            <span className="block text-body text-theme-muted">{c.contactPerson}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedClient(null);
+                      setStep("task_form");
+                    }}
+                    className="w-full rounded-xl border border-dashed border-theme-border px-3 py-2 text-left text-body font-medium text-theme-text hover:bg-theme-subtle"
+                  >
+                    {t("quick_option_task")} ({t("unassigned_note")})
+                  </button>
                 </div>
               ) : null}
 
-              {step === "task_form" && selectedClient ? (
+              {step === "task_form" ? (
                 <div className="space-y-3">
                   <button
                     type="button"
@@ -146,12 +169,13 @@ export function QuickTaskActionModal() {
                       setSelectedClient(null);
                       setStep("pick");
                     }}
-                    className="text-sm text-slate-600 hover:underline"
+                    className="text-body text-theme-muted hover:underline"
                   >
                     ← {t("back")}
                   </button>
                   <QuickTaskForm
-                    clientId={selectedClient.id}
+                    clientId={selectedClient?.id ?? null}
+                    stickyFooter
                     onCancel={closeAll}
                     onSaved={() => {
                       router.refresh();
@@ -163,8 +187,8 @@ export function QuickTaskActionModal() {
             </div>
 
             {step === "pick" ? (
-              <div className="border-t border-slate-200 p-3">
-                <button type="button" onClick={closeAll} className="w-full rounded-xl border px-4 py-2 text-sm">
+              <div className="border-t border-theme-border p-3">
+                <button type="button" onClick={closeAll} className="w-full rounded-xl border px-4 py-2 text-button font-medium">
                   {t("cancel")}
                 </button>
               </div>

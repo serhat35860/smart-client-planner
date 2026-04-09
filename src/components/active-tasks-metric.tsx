@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "activeTasksMetricFilter";
 
-export type TaskMetricFilter = "all" | "incomplete" | "completed";
+export type TaskMetricFilter = "mine" | "all" | "incomplete" | "completed";
 
 function isFilter(v: string | null): v is TaskMetricFilter {
-  return v === "all" || v === "incomplete" || v === "completed";
+  return v === "mine" || v === "all" || v === "incomplete" || v === "completed";
 }
 
 export function ActiveTasksMetric({
@@ -30,7 +30,7 @@ export function ActiveTasksMetric({
   const router = useRouter();
   const pathname = usePathname();
   const showCompletedOption = completedCount !== undefined;
-  const [localFilter, setLocalFilter] = useState<TaskMetricFilter>("all");
+  const [localFilter, setLocalFilter] = useState<TaskMetricFilter>("mine");
 
   useEffect(() => {
     if (syncTaskListToUrl) return;
@@ -38,7 +38,7 @@ export function ActiveTasksMetric({
       const v = localStorage.getItem(STORAGE_KEY);
       if (!isFilter(v)) return;
       if (v === "completed" && !showCompletedOption) {
-        setLocalFilter("all");
+        setLocalFilter("mine");
         return;
       }
       setLocalFilter(v);
@@ -52,7 +52,7 @@ export function ActiveTasksMetric({
   function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const v = e.target.value as TaskMetricFilter;
     if (syncTaskListToUrl) {
-      const href = v === "all" ? pathname : `${pathname}?taskFilter=${v}`;
+      const href = v === "mine" ? pathname : `${pathname}?taskFilter=${v}`;
       router.replace(href, { scroll: false });
       return;
     }
@@ -67,20 +67,21 @@ export function ActiveTasksMetric({
   return (
     <div
       className={cn(
-        "flex h-full min-h-[5.25rem] flex-col rounded-2xl p-3 text-[var(--ui-accent-contrast)]",
-        className ?? "shadow-sm"
+        "dash-premium-metric flex h-full min-h-[5.25rem] flex-col p-3.5 text-[var(--ui-accent-contrast)]",
+        className
       )}
       style={{ backgroundColor: "var(--ui-accent)" }}
     >
-      <label className="flex min-h-0 flex-1 flex-col text-xs font-normal">
-        <span className="shrink-0 uppercase tracking-wide leading-tight">{t("active_tasks")}</span>
+      <label className="flex min-h-0 flex-1 flex-col text-label font-medium">
+        <span className="shrink-0 uppercase tracking-wide leading-tight text-theme-on-primary/90">{t("active_tasks")}</span>
         <div className="mt-0.5 flex min-h-0 flex-1 flex-col justify-end">
           <select
             value={filter === "completed" && !showCompletedOption ? "all" : filter}
             onChange={onChange}
-            className="w-full cursor-pointer rounded-lg border border-slate-200/80 bg-[var(--ui-accent-contrast)] px-2 py-1.5 text-xs font-semibold normal-case text-[var(--ui-accent)] shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent-contrast)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-accent)]"
+            className="w-full cursor-pointer rounded-lg border border-theme-border/80 bg-[var(--ui-accent-contrast)] px-2 py-1.5 text-body-sm font-medium normal-case text-[var(--ui-accent)] shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent-contrast)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ui-accent)]"
             aria-label={t("active_tasks")}
           >
+            <option value="mine">{t("active_tasks_filter_mine")}</option>
             <option value="all">{t("active_tasks_filter_all")}</option>
             <option value="incomplete">{t("active_tasks_filter_incomplete")}</option>
             {showCompletedOption ? <option value="completed">{t("active_tasks_filter_completed")}</option> : null}

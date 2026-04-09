@@ -88,7 +88,7 @@ export function ClientsFiltersForm({
         </select>
         <button
           type="submit"
-          className="shrink-0 rounded-xl px-3 py-2 text-sm text-[var(--ui-accent-contrast)]"
+          className="shrink-0 rounded-xl px-3 py-2 text-button font-medium text-[var(--ui-accent-contrast)]"
           style={{ backgroundColor: "var(--ui-accent)" }}
         >
           {t("filter")}

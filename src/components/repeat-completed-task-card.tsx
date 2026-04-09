@@ -9,13 +9,16 @@ import { cn } from "@/lib/utils";
 import { TaggedMembersChips } from "@/components/tagged-members-chips";
 import type { CreatorPreview, NoteMentionMember } from "@/lib/creator-preview";
 import { appLanguageFromI18n, formatDateTime24 } from "@/lib/format-date";
+import { noteSurfaceBgStyle } from "@/lib/note-surface";
 
 type Props = {
   taskId: string;
   title: string;
-  clientName: string;
+  clientName?: string | null;
   deadlineIso: string;
   completedAtIso: string;
+  color?: string;
+  priority?: "LOW" | "MEDIUM" | "HIGH";
   completionNotes?: string | null;
   articleClassName?: string;
   createdBy?: CreatorPreview | null;
@@ -30,6 +33,8 @@ export function RepeatCompletedTaskCard({
   clientName,
   deadlineIso,
   completedAtIso,
+  color = "yellow",
+  priority = "MEDIUM",
   completionNotes = null,
   articleClassName,
   createdBy,
@@ -46,6 +51,13 @@ export function RepeatCompletedTaskCard({
 
   const deadline = new Date(deadlineIso);
   const completedAt = new Date(completedAtIso);
+
+  const priorityClass =
+    priority === "HIGH"
+      ? "bg-theme-danger-soft text-theme-error"
+      : priority === "MEDIUM"
+        ? "bg-theme-warning/15 text-theme-warning"
+        : "bg-theme-success-soft text-theme-success";
 
   useEffect(() => {
     if (!open) return;
@@ -88,16 +100,23 @@ export function RepeatCompletedTaskCard({
       >
         <article
           className={cn(
-            "relative rounded-2xl bg-white p-4",
+            "relative rounded-2xl bg-theme-card p-4",
             showUpdatedCorner && createdBy ? "pb-11" : showUpdatedCorner ? "pb-9" : "pb-7",
-            articleClassName ?? "shadow-sm"
+            articleClassName ?? "shadow-card-lift"
           )}
+          style={noteSurfaceBgStyle(color)}
         >
-          <h3 className="font-semibold text-slate-900">{title}</h3>
-          <p className="mt-1 text-sm text-slate-600">
-            {clientName} · {formatDateTime24(deadline, lang)}
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-semibold text-theme-text">{title}</h3>
+            <span className={cn("rounded-full px-2 py-1 text-caption font-medium", priorityClass)}>
+              {priority === "HIGH" ? t("priority_high") : priority === "MEDIUM" ? t("priority_medium") : t("priority_low")}
+            </span>
+          </div>
+          <p className="mt-1 text-body text-theme-muted">
+            {clientName?.trim() ? `${clientName} · ` : ""}
+            {formatDateTime24(deadline, lang)}
           </p>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-theme-muted">
             {t("task_completed_on")}: {formatDateTime24(completedAt, lang)}
           </p>
           {completionNotes?.trim() ? <TaskCompletionNotesBlock text={completionNotes.trim()} /> : null}
@@ -112,31 +131,32 @@ export function RepeatCompletedTaskCard({
 
       {open ? (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-theme-text/40 p-4 sm:items-center"
           role="dialog"
           aria-modal="true"
           aria-labelledby="repeat-task-title"
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-            <h3 id="repeat-task-title" className="mb-2 text-lg font-semibold">
+          <div className="w-full max-w-[22.5rem] rounded-2xl bg-theme-card p-5 shadow-xl">
+            <h3 id="repeat-task-title" className="mb-2 text-h3 font-semibold">
               {t("repeat_task_modal_title")}
             </h3>
-            <p className="font-medium text-slate-900">{title}</p>
-            <p className="mt-1 text-sm text-slate-600">
-              {clientName} · {formatDateTime24(deadline, lang)}
+            <p className="font-medium text-theme-text">{title}</p>
+            <p className="mt-1 text-body text-theme-muted">
+              {clientName?.trim() ? `${clientName} · ` : ""}
+              {formatDateTime24(deadline, lang)}
             </p>
-            <p className="mt-3 text-sm text-slate-600">{t("repeat_task_explain")}</p>
+            <p className="mt-3 text-body text-theme-muted">{t("repeat_task_explain")}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={repeatTask}
                 disabled={loading}
-                className="rounded-xl px-4 py-2 text-sm text-[var(--ui-accent-contrast)]"
+                className="rounded-xl px-4 py-2 text-button font-medium text-[var(--ui-accent-contrast)]"
                 style={{ backgroundColor: "var(--ui-accent)" }}
               >
                 {loading ? t("loading") : t("repeat_task")}
               </button>
-              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border px-4 py-2 text-sm" disabled={loading}>
+              <button type="button" onClick={() => setOpen(false)} className="rounded-xl border px-4 py-2 text-button font-medium" disabled={loading}>
                 {t("cancel")}
               </button>
             </div>
