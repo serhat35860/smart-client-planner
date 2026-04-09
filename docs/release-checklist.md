@@ -1,5 +1,7 @@
 # Sürüm / EXE öncesi kontrol listesi
 
+Yönetici işletim (dal koruması, sırlar, acil): [`docs/ADMIN.md`](ADMIN.md).
+
 ## Tek komut (önerilen)
 
 Önce **Next dev** açıksa kapatın veya:

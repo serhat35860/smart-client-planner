@@ -1,8 +1,17 @@
 {
   "name": "smart-client-planner",
   "version": "1.1.0",
+  "description": "Sticky-note inspired customer planner and mini CRM (web + optional Windows desktop).",
   "main": "dist-electron/main.js",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/serhat35860/smart-client-planner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/serhat35860/smart-client-planner/issues"
+  },
+  "homepage": "https://github.com/serhat35860/smart-client-planner#readme",
   "scripts": {
     "predev": "node scripts/validate-dev-env.mjs && node scripts/prisma-generate-try.mjs",
     "prebuild": "node scripts/validate-dev-env.mjs",
