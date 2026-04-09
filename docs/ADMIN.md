@@ -2,6 +2,8 @@
 
 Bu depo için **tam yetkili** bakım adımları. Gizli değerleri sohbete yapıştırmayın; yalnızca GitHub / Vercel / Supabase arayüzünde tanımlayın.
 
+**Adım adım geniş rehber:** [`docs/detayli-tarif.md`](detayli-tarif.md)
+
 ## GitHub
 
 1. **`main` dal koruması** (Settings → Branches → Branch protection rules):
