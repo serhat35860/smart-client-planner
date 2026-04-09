@@ -92,7 +92,13 @@
     "extraMetadata": {
       "main": "dist-electron/main.js"
     },
-    "publish": [],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "serhat35860",
+        "repo": "smart-client-planner"
+      }
+    ],
     "win": {
       "signAndEditExecutable": false,
       "verifyUpdateCodeSignature": false,
