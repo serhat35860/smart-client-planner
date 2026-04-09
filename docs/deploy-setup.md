@@ -35,7 +35,7 @@ Otomatik güncelleme **GitHub Releases** üzerinden çalışır: `electron-updat
 
 ### 3.1 Senin yapacakların
 
-1. Otomatik güncelleme için release build’de **`package.json` → `build.publish`** içine GitHub `owner` / `repo` ekle **veya** paketlenmiş uygulamada **`DESKTOP_UPDATE_OWNER`** / **`DESKTOP_UPDATE_REPO`** kullan (`electron/main.ts`). Varsayılan repoda `publish: []` ise yalnızca env ile feed verilir; yanlış adres gömülmesin diye boş bırakılmış olabilir.
+1. Bu repoda **`build.publish`** genelde `serhat35860/smart-client-planner` olarak ayarlıdır; fork’ta **`package.json` → `build.publish`** içindeki `owner` / `repo` değerlerini kendi GitHub bilgilerinle değiştir. Alternatif: paketlenmiş uygulamada **`DESKTOP_UPDATE_OWNER`** / **`DESKTOP_UPDATE_REPO`** (`electron/main.ts`).
 2. Her test / prod sürümünde **`package.json` içindeki `version`** alanını artır (ör. `1.1.0`). Aynı sürüm numarasıyla ikinci kez release yayınlama.
 3. Temiz derleme:
    ```bash

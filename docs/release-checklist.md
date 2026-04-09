@@ -38,9 +38,9 @@ npm run desktop:build
 
 ## Otomatik güncelleme (electron-updater)
 
-`package.json` içinde `build.publish` bilerek **boş** bırakıldı; yanlış GitHub `REPLACE_ME` adresi gömülmesin diye.
+`package.json` → `build.publish` bu repoda GitHub **serhat35860/smart-client-planner** ile tanımlıdır; fork’ta kendi `owner`/`repo` değerlerini kullanın.
 
-- Güncelleme yayınlarken: build sırasında `build.publish` doldurun **veya** paketlenmiş uygulama ortamında `DESKTOP_UPDATE_OWNER` / `DESKTOP_UPDATE_REPO` kullanın (`electron/main.ts`).
+- İsterseniz yine **`DESKTOP_UPDATE_OWNER`** / **`DESKTOP_UPDATE_REPO`** ile feed’i geçersiz kılabilirsiniz (`electron/main.ts`).
 
 ## Elle smoke
 

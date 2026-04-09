@@ -174,7 +174,7 @@ function setupAutoUpdate() {
   if (isDev) {
     return;
   }
-  /** Güncelleme: `build.publish` doluysa build `app-update.yml` gömer. Publish boşsa yalnızca DESKTOP_UPDATE_OWNER / DESKTOP_UPDATE_REPO ile setFeedURL kullanılır; ikisi de yoksa güncelleme kontrolü sessizce hata loglar. */
+  /** Güncelleme: `package.json` build.publish → `app-update.yml`. İsterseniz DESKTOP_UPDATE_OWNER / DESKTOP_UPDATE_REPO ile feed override. */
   const overrideOwner = process.env.DESKTOP_UPDATE_OWNER;
   const overrideRepo = process.env.DESKTOP_UPDATE_REPO;
   if (overrideOwner && overrideRepo) {

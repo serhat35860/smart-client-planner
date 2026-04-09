@@ -26,7 +26,7 @@ export const versionNotes: VersionNote[] = [
       "Raporlar: tarih aralığında müşteri/not/görev oluşturma ve güncelleme, görev tamamlanma/başarısız, etiket ve audit satırları tek listede (PDF/Excel).",
       "Çoklu kullanıcı için audit altyapısı: sabit olay adları, workspace aktivite kaydı (IP/UA), müşteri son güncelleyen alanı (updatedBy).",
       "Sürüm öncesi: Vitest birim testleri, npm run pre-release / dev:stop / release:check; CI’da test adımı.",
-      "Masaüstü: build.publish varsayılanı boş — yanlış GitHub adresi gömülmesin; güncelleme için DESKTOP_UPDATE_* veya release sırasında publish tanımlayın.",
+      "Masaüstü: GitHub otomatik güncelleme için build.publish (upstream: serhat35860/smart-client-planner); fork’ta owner/repo güncelleyin veya DESKTOP_UPDATE_* kullanın.",
       "Windows kurulum paketi / uygulama sürümü: 1.1.0 (package.json ile uyumlu)."
     ]
   },
