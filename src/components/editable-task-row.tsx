@@ -25,6 +25,7 @@ const PRIORITY_OPTIONS: Array<{ value: Priority; dotClass: string }> = [
 export type SerializableTask = {
   id: string;
   title: string;
+  content?: string | null;
   deadlineIso: string;
   priority: Priority;
   status: "PENDING" | "DONE" | "FAILED";
@@ -71,6 +72,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
 
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(task.title);
+  const [content, setContent] = useState(task.content ?? "");
   const [deadline, setDeadline] = useState(() => toDatetimeLocalValue(deadlineDate));
   const [priority, setPriority] = useState<Priority>(task.priority);
   const [color, setColor] = useState(task.color);
@@ -101,6 +103,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
   useEffect(() => {
     if (!open) return;
     setTitle(task.title);
+    setContent(task.content ?? "");
     setDeadline(toDatetimeLocalValue(new Date(task.deadlineIso)));
     setPriority(task.priority);
     setColor(task.color);
@@ -124,7 +127,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
     return () => {
       cancelled = true;
     };
-  }, [open, task.id, task.title, task.deadlineIso, task.priority, task.color, task.client?.id, task.assigneeUserId, task.remindBeforeMinutes, task.mentions]);
+  }, [open, task.id, task.title, task.content, task.deadlineIso, task.priority, task.color, task.client?.id, task.assigneeUserId, task.remindBeforeMinutes, task.mentions]);
 
   useEffect(() => {
     if (!open) return;
@@ -141,6 +144,7 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
     setLoading(true);
     const body: Record<string, unknown> = {
       title: title.trim(),
+      content: content.trim() || null,
       deadline: new Date(deadline).toISOString(),
       priority,
       color,
@@ -181,7 +185,12 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h3 className="font-semibold">{task.title}</h3>
+            <h3 className="font-semibold break-words">{task.title}</h3>
+            {task.content?.trim() ? (
+              <p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-sm text-theme-muted [overflow-wrap:anywhere]">
+                {task.content.trim()}
+              </p>
+            ) : null}
             <p className="text-body text-theme-muted">
               {task.client?.companyName ? `${task.client.companyName} - ` : ""}
               {formatDateTime24(deadlineDate, lang)}
@@ -234,6 +243,15 @@ export function EditableTaskRow({ task, nowMs }: { task: SerializableTask; nowMs
               <label className="block text-body text-theme-text">
                 <span className="mb-1 block font-medium">{t("task_title_placeholder")}</span>
                 <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full" required />
+              </label>
+              <label className="block text-body text-theme-text">
+                <span className="mb-1 block font-medium">{t("task_content_placeholder")}</span>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows={4}
+                  className="w-full rounded-xl border border-theme-border px-3 py-2 text-body"
+                />
               </label>
               <div className="block text-body text-theme-text">
                 <span className="mb-1 block font-medium">{t("task_deadline_label")}</span>

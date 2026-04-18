@@ -1,15 +1,15 @@
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/shell";
 import { TeamMemberAdminEditorForm } from "@/components/team-member-admin-editor-form";
-import { canManageWorkspace, requireWorkspacePage } from "@/lib/workspace";
+import { requireWorkspacePage } from "@/lib/workspace";
 import { getServerT } from "@/i18n/server";
 
 type Props = { params: Promise<{ userId: string }> };
 
 export default async function TeamMemberEditPage({ params }: Props) {
   const ctx = await requireWorkspacePage();
-  if (!canManageWorkspace(ctx.role)) notFound();
+  if (ctx.role !== "ADMIN") redirect("/team");
 
   const { userId } = await params;
   const { t } = await getServerT();
@@ -18,7 +18,7 @@ export default async function TeamMemberEditPage({ params }: Props) {
     where: { workspaceId: ctx.workspace.id, userId },
     include: { user: { select: { id: true, name: true, email: true, username: true } } }
   });
-  if (!member) notFound();
+  if (!member) redirect("/team");
 
   return (
     <AppShell>

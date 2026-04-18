@@ -132,9 +132,12 @@ export function QuickNoteForm({
   return (
     <form
       onSubmit={submit}
-      className={cn("rounded-2xl bg-theme-card p-4 shadow-sm", stickyFooter ? "flex h-full min-h-0 flex-col" : "space-y-2")}
+      className={cn(
+        "rounded-2xl bg-theme-card p-4 shadow-sm",
+        stickyFooter ? "grid h-full min-h-0 max-h-full grid-rows-[minmax(0,1fr)_auto] overflow-hidden" : "space-y-2"
+      )}
     >
-      <div className={cn(stickyFooter ? "min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" : "space-y-2")}>
+      <div className={cn(stickyFooter ? "min-h-0 basis-0 flex-1 space-y-2 overflow-y-auto pr-1" : "space-y-2")}>
         <input placeholder={t("optional_title")} value={title} onChange={(e) => setTitle(e.target.value)} className="w-full" />
         <textarea
           placeholder={clientId ? t("quick_note_placeholder") : t("standalone_quick_note_placeholder")}
@@ -166,7 +169,12 @@ export function QuickNoteForm({
         {!frameReminderSection && showRemindBefore ? remindBeforeRow : null}
         <NoteMemberPicker value={mentionedUserIds} onChange={setMentionedUserIds} labelClassName={sectionHeadingsClass} />
       </div>
-      <div className={cn("flex flex-wrap items-center gap-2", stickyFooter ? "mt-2 shrink-0 border-t border-theme-border pt-3" : "pt-1")}>
+      <div
+        className={cn(
+          "flex flex-wrap items-center gap-2",
+          stickyFooter ? "mt-2 shrink-0 border-t border-theme-border pt-3" : "pt-1"
+        )}
+      >
         <button
           type="submit"
           disabled={loading}

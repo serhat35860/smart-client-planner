@@ -2,12 +2,28 @@ import { app, BrowserWindow, Menu, dialog, shell } from "electron";
 import log from "electron-log/main";
 import { autoUpdater } from "electron-updater";
 import path from "node:path";
-import { fork, ChildProcess } from "node:child_process";
+import { spawn, ChildProcess } from "node:child_process";
 import net from "node:net";
 import fs from "node:fs";
+import { DatabaseSync } from "node:sqlite";
 import { setTimeout as wait } from "node:timers/promises";
 
+/**
+ * Paketlenmemiş (npm run desktop:dev) çalıştırmada `desktop.db` ve loglar kurulu NSIS exe ile karışmasın.
+ * Varsayılan: `%AppData%/smart-client-planner-dev` (Windows) — kurulum: genelde `Smart Client Planner` veya farklı isim.
+ * Aynı veriyi kasıtlı paylaşmak için: SCP_DESKTOP_SHARE_USER_DATA=1
+ * Özel klasör: SCP_DESKTOP_USER_DATA=C:\path\to\folder
+ */
 const isDev = !app.isPackaged;
+if (isDev && process.env.SCP_DESKTOP_SHARE_USER_DATA !== "1") {
+  const fromEnv = process.env.SCP_DESKTOP_USER_DATA?.trim();
+  const devUserData =
+    fromEnv && fromEnv.length > 0
+      ? fromEnv
+      : path.join(app.getPath("appData"), "smart-client-planner-dev");
+  app.setPath("userData", devUserData);
+}
+
 if (!isDev) {
   process.env.DESKTOP_APP = "1";
 }
@@ -17,6 +33,13 @@ const serverUrl = process.env.DESKTOP_SERVER_URL ?? `http://127.0.0.1:${serverPo
 const serverBootTimeoutMs = 30_000;
 let nextServerProcess: ChildProcess | null = null;
 let mainWindowRef: BrowserWindow | null = null;
+
+function getPackagedServerCommand() {
+  if (!isDev && process.platform === "win32") {
+    return "node";
+  }
+  return process.execPath;
+}
 
 log.initialize();
 log.transports.file.level = "info";
@@ -37,7 +60,67 @@ function getTemplateDbPath() {
   return isDev ? path.join(process.cwd(), "desktop-template.db") : path.join(process.resourcesPath, "app.asar", "desktop-template.db");
 }
 
-function configureDesktopDatabase() {
+type SqliteTableInfoRow = { name: string };
+
+function applyMissingColumns(db: DatabaseSync, tableName: string, statementsByColumn: Record<string, string>) {
+  const rows = db.prepare(`PRAGMA table_info("${tableName}")`).all() as SqliteTableInfoRow[];
+  const existing = new Set(rows.map((row) => row.name));
+  const applied: string[] = [];
+  for (const [column, sql] of Object.entries(statementsByColumn)) {
+    if (existing.has(column)) continue;
+    db.exec(sql);
+    applied.push(sql);
+  }
+  return applied;
+}
+
+async function ensureDesktopDbCompatibility(dbPath: string) {
+  let db: DatabaseSync | null = null;
+  try {
+    db = new DatabaseSync(dbPath);
+    const alterStatements: string[] = [];
+    alterStatements.push(
+      ...applyMissingColumns(db, "Client", {
+        fileNumber: 'ALTER TABLE "Client" ADD COLUMN "fileNumber" TEXT',
+        additionalContacts: 'ALTER TABLE "Client" ADD COLUMN "additionalContacts" JSON',
+        createdByUserId: 'ALTER TABLE "Client" ADD COLUMN "createdByUserId" TEXT',
+        updatedByUserId: 'ALTER TABLE "Client" ADD COLUMN "updatedByUserId" TEXT'
+      })
+    );
+    alterStatements.push(
+      ...applyMissingColumns(db, "Note", {
+        createdByUserId: 'ALTER TABLE "Note" ADD COLUMN "createdByUserId" TEXT',
+        updatedByUserId: 'ALTER TABLE "Note" ADD COLUMN "updatedByUserId" TEXT',
+        editedByOtherMember: 'ALTER TABLE "Note" ADD COLUMN "editedByOtherMember" BOOLEAN NOT NULL DEFAULT 0'
+      })
+    );
+    alterStatements.push(
+      ...applyMissingColumns(db, "Task", {
+        content: 'ALTER TABLE "Task" ADD COLUMN "content" TEXT',
+        completionNotes: 'ALTER TABLE "Task" ADD COLUMN "completionNotes" TEXT',
+        assigneeUserId: 'ALTER TABLE "Task" ADD COLUMN "assigneeUserId" TEXT',
+        acceptedAt: 'ALTER TABLE "Task" ADD COLUMN "acceptedAt" DATETIME',
+        createdByUserId: 'ALTER TABLE "Task" ADD COLUMN "createdByUserId" TEXT',
+        updatedByUserId: 'ALTER TABLE "Task" ADD COLUMN "updatedByUserId" TEXT',
+        editedByOtherMember: 'ALTER TABLE "Task" ADD COLUMN "editedByOtherMember" BOOLEAN NOT NULL DEFAULT 0'
+      })
+    );
+    alterStatements.push(
+      ...applyMissingColumns(db, "Tag", {
+        createdByUserId: 'ALTER TABLE "Tag" ADD COLUMN "createdByUserId" TEXT'
+      })
+    );
+    if (alterStatements.length > 0) {
+      log.info("Desktop DB compatibility patch applied:", alterStatements);
+    }
+  } catch (error) {
+    log.error("Desktop DB compatibility patch failed:", error);
+  } finally {
+    db?.close();
+  }
+}
+
+async function configureDesktopDatabase() {
   const dbPath = path.join(app.getPath("userData"), "desktop.db");
   if (!fs.existsSync(dbPath)) {
     const templateDbPath = getTemplateDbPath();
@@ -48,7 +131,9 @@ function configureDesktopDatabase() {
       log.warn("Desktop template database not found, Prisma may fail until DB is initialized.");
     }
   }
-  process.env.DATABASE_URL = `file:${dbPath.replaceAll("\\", "/")}`;
+  const dbUrl = `file:${dbPath.replaceAll("\\", "/")}`;
+  process.env.DATABASE_URL = dbUrl;
+  await ensureDesktopDbCompatibility(dbPath);
 }
 
 async function waitForServerReady(timeoutMs: number) {
@@ -103,16 +188,25 @@ async function startNextServerIfNeeded() {
     return;
   }
   const serverEntrypoint = getStandaloneServerPath();
-  log.info("Starting local Next server:", serverEntrypoint);
-  nextServerProcess = fork(serverEntrypoint, [], {
+  /**
+   * Paketli modda `app.asar` içi sanal bir dosya sistemidir; child process `cwd` olarak kullanılamaz.
+   * Giriş dosyasını asar içinden çalıştırıp çalışma dizinini gerçek `resources` klasörüne sabitliyoruz.
+   */
+  const serverCwd = path.dirname(serverEntrypoint);
+  const serverCommand = getPackagedServerCommand();
+  log.info("Starting local Next server:", serverEntrypoint, "cwd:", serverCwd, "command:", serverCommand);
+  nextServerProcess = spawn(serverCommand, [serverEntrypoint], {
+    cwd: serverCwd,
     env: {
       ...process.env,
+      ...(serverCommand === process.execPath ? { ELECTRON_RUN_AS_NODE: "1" } : {}),
       NODE_ENV: "production",
       DESKTOP_APP: "1",
       HOSTNAME: "127.0.0.1",
       PORT: String(serverPort)
     },
-    stdio: "pipe"
+    stdio: "pipe",
+    windowsHide: true
   });
   nextServerProcess.stdout?.on("data", (chunk) => log.info(`[next] ${String(chunk).trim()}`));
   nextServerProcess.stderr?.on("data", (chunk) => log.error(`[next] ${String(chunk).trim()}`));
@@ -174,9 +268,23 @@ function setupAutoUpdate() {
   if (isDev) {
     return;
   }
-  /** Güncelleme: `package.json` build.publish → `app-update.yml`. İsterseniz DESKTOP_UPDATE_OWNER / DESKTOP_UPDATE_REPO ile feed override. */
+  /** GitHub Releases: `package.json` → `build.publish` build sırasında `app-update.yml` olarak gömülür; electron-updater bunu okur. İsteğe bağlı override: DESKTOP_UPDATE_OWNER / DESKTOP_UPDATE_REPO + setFeedURL gerekmez; yml yoksa veya hatalıysa log’da hata görünür. */
   const overrideOwner = process.env.DESKTOP_UPDATE_OWNER;
   const overrideRepo = process.env.DESKTOP_UPDATE_REPO;
+  const appUpdateYmlPath = path.join(process.resourcesPath, "app-update.yml");
+  const hasAppUpdateYml = fs.existsSync(appUpdateYmlPath);
+  const hasPlaceholderFeed =
+    hasAppUpdateYml && /REPLACE_ME/i.test(fs.readFileSync(appUpdateYmlPath, "utf8"));
+
+  if (hasPlaceholderFeed && !(overrideOwner && overrideRepo)) {
+    log.info("Auto-update disabled: app-update.yml still contains REPLACE_ME placeholder.");
+    return;
+  }
+  if (!hasAppUpdateYml && !(overrideOwner && overrideRepo)) {
+    log.info("Auto-update disabled: app-update.yml not found and no DESKTOP_UPDATE_OWNER/REPO override provided.");
+    return;
+  }
+
   if (overrideOwner && overrideRepo) {
     autoUpdater.setFeedURL({
       provider: "github",
@@ -267,7 +375,7 @@ app.on("second-instance", () => {
 });
 
 app.whenReady().then(async () => {
-  configureDesktopDatabase();
+  await configureDesktopDatabase();
   setupErrorHandling();
   setupAppMenu();
   setupAutoUpdate();

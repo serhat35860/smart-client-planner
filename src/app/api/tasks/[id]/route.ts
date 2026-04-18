@@ -21,6 +21,7 @@ const updateSchema = z
     notCompletedReason: z.union([z.string().max(2000), z.null()]).optional(),
     completionNotes: z.union([z.string().max(4000), z.null()]).optional(),
     title: z.string().min(1).max(500).optional(),
+    content: z.union([z.string().max(4000), z.null()]).optional(),
     deadline: z.string().datetime().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH"]).optional(),
     color: colorSchema.optional(),
@@ -35,6 +36,7 @@ const updateSchema = z
       d.notCompletedReason !== undefined ||
       d.completionNotes !== undefined ||
       d.title !== undefined ||
+      d.content !== undefined ||
       d.deadline !== undefined ||
       d.priority !== undefined ||
       d.color !== undefined ||
@@ -53,6 +55,7 @@ function taskPatchMetaKeys(d: z.infer<typeof updateSchema>) {
     "notCompletedReason",
     "completionNotes",
     "title",
+    "content",
     "deadline",
     "priority",
     "color",
@@ -92,6 +95,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     notCompletedReason,
     completionNotes,
     title,
+    content,
     deadline,
     priority,
     color,
@@ -104,6 +108,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const forbiddenFieldUpdate =
     title !== undefined ||
+    content !== undefined ||
     deadline !== undefined ||
     priority !== undefined ||
     color !== undefined ||
@@ -143,6 +148,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     notCompletedReason?: string | null;
     completionNotes?: string | null;
     title?: string;
+    content?: string | null;
     deadline?: Date;
     priority?: "LOW" | "MEDIUM" | "HIGH";
     color?: string;
@@ -194,6 +200,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 
   if (title !== undefined) data.title = title.trim();
+  if (content !== undefined) data.content = content === null ? null : content.trim() === "" ? null : content.trim();
   if (deadline !== undefined) data.deadline = new Date(deadline);
   if (priority !== undefined) data.priority = priority;
   if (color !== undefined) data.color = color;

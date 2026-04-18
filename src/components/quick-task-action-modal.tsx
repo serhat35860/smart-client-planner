@@ -93,7 +93,7 @@ export function QuickTaskActionModal() {
           aria-modal="true"
           aria-labelledby="quick-task-modal-title"
         >
-          <div className="flex max-h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
+          <div className="flex h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
             <div className="border-b border-theme-border p-4">
               <h2 id="quick-task-modal-title" className="text-h3 font-semibold">
                 {modalTitle}
@@ -162,7 +162,7 @@ export function QuickTaskActionModal() {
               ) : null}
 
               {step === "task_form" ? (
-                <div className="space-y-3">
+                <div className="flex h-full min-h-0 flex-col gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -173,15 +173,17 @@ export function QuickTaskActionModal() {
                   >
                     ← {t("back")}
                   </button>
-                  <QuickTaskForm
-                    clientId={selectedClient?.id ?? null}
-                    stickyFooter
-                    onCancel={closeAll}
-                    onSaved={() => {
-                      router.refresh();
-                      closeAll();
-                    }}
-                  />
+                  <div className="min-h-0 flex-1 basis-0 overflow-hidden">
+                    <QuickTaskForm
+                      clientId={selectedClient?.id ?? null}
+                      stickyFooter
+                      onCancel={closeAll}
+                      onSaved={() => {
+                        router.refresh();
+                        closeAll();
+                      }}
+                    />
+                  </div>
                 </div>
               ) : null}
             </div>

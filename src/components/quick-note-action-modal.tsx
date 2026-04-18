@@ -89,6 +89,11 @@ export function QuickNoteActionModal() {
     else setStep("menu");
   }
 
+  function goRemindersShortcut() {
+    closeAll();
+    router.push("/reminders?newReminder=1");
+  }
+
   const hideModalFooterCancel =
     step === "note" ||
     step === "reminder_note" ||
@@ -139,7 +144,7 @@ export function QuickNoteActionModal() {
           aria-modal="true"
           aria-labelledby="quick-note-modal-title"
         >
-          <div className="flex max-h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
+          <div className="flex h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
             <div className="border-b border-theme-border p-4">
               <h2 id="quick-note-modal-title" className={cn("text-h3 font-semibold", quickNoteModalHeadingClass)}>
                 {modalTitle}
@@ -172,7 +177,7 @@ export function QuickNoteActionModal() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setStep("reminder_choose")}
+                    onClick={goRemindersShortcut}
                     className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
                     <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("quick_option_reminder")}</p>
@@ -196,7 +201,7 @@ export function QuickNoteActionModal() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => goPick("reminder")}
+                    onClick={goRemindersShortcut}
                     className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
                     <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("reminder_with_client")}</p>
@@ -204,7 +209,7 @@ export function QuickNoteActionModal() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setStep("reminder_standalone")}
+                    onClick={goRemindersShortcut}
                     className="rounded-2xl border-2 border-theme-border p-4 text-left transition hover:border-[var(--ui-accent)] hover:bg-theme-subtle"
                   >
                     <p className={cn("font-semibold text-theme-text", quickNoteModalHeadingClass)}>{t("reminder_standalone_short")}</p>
@@ -315,7 +320,7 @@ export function QuickNoteActionModal() {
               ) : null}
 
               {step === "task_form" && selectedClient ? (
-                <div className="space-y-3">
+                <div className="flex h-full min-h-0 flex-col gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -326,34 +331,37 @@ export function QuickNoteActionModal() {
                   >
                     ← {t("back")}
                   </button>
-                  <QuickTaskForm
-                    clientId={selectedClient.id}
-                    sectionHeadingsClass={quickNoteModalHeadingClass}
-                    stickyFooter
-                    onCancel={closeAll}
-                    onSaved={() => {
-                      router.refresh();
-                      closeAll();
-                    }}
-                  />
+                  <div className="min-h-0 flex-1 basis-0 overflow-hidden">
+                    <QuickTaskForm
+                      clientId={selectedClient.id}
+                      stickyFooter
+                      onCancel={closeAll}
+                      onSaved={() => {
+                        router.refresh();
+                        closeAll();
+                      }}
+                    />
+                  </div>
                 </div>
               ) : null}
 
               {step === "standalone" ? (
-                <div className="space-y-3">
+                <div className="flex h-full min-h-0 flex-col gap-3">
                   <button type="button" onClick={() => setStep("menu")} className="text-body text-theme-muted hover:underline">
                     ← {t("back")}
                   </button>
-                  <p className="text-body text-theme-muted">{t("standalone_note_hint")}</p>
-                  <QuickNoteForm
-                    sectionHeadingsClass={quickNoteModalHeadingClass}
-                    stickyFooter
-                    onCancel={closeAll}
-                    onSaved={() => {
-                      router.refresh();
-                      closeAll();
-                    }}
-                  />
+                  <p className="shrink-0 text-body text-theme-muted">{t("standalone_note_hint")}</p>
+                  <div className="min-h-0 flex-1 basis-0">
+                    <QuickNoteForm
+                      sectionHeadingsClass={quickNoteModalHeadingClass}
+                      stickyFooter
+                      onCancel={closeAll}
+                      onSaved={() => {
+                        router.refresh();
+                        closeAll();
+                      }}
+                    />
+                  </div>
                 </div>
               ) : null}
 

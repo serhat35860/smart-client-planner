@@ -110,7 +110,7 @@ export function ClientExtraContactRows({
           />
           <input
             className="w-full"
-            placeholder={t("phone")}
+            placeholder={t("client_extra_contact_contact_placeholder")}
             value={row.phone}
             onChange={(e) => update(i, { phone: e.target.value })}
           />

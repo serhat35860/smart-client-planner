@@ -47,13 +47,14 @@ export function NewClientForm({
     const additionalContacts = extraContacts
       .map((x) => {
         const jt = x.jobTitle.trim();
+        const contact = x.phone.trim();
         return {
           name: x.name.trim(),
-          phone: x.phone.trim(),
+          ...(contact ? { phone: contact } : {}),
           ...(jt ? { jobTitle: jt } : {})
         };
       })
-      .filter((x) => x.name && x.phone);
+      .filter((x) => x.name);
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

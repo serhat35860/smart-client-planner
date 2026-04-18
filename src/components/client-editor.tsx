@@ -44,7 +44,7 @@ export function ClientEditor({ client }: Props) {
   const [extraContacts, setExtraContacts] = useState<ExtraContact[]>(() =>
     parseAdditionalContacts(client.additionalContacts).map((c) => ({
       name: c.name,
-      phone: c.phone,
+      phone: c.phone ?? "",
       jobTitle: c.jobTitle ?? ""
     }))
   );
@@ -70,7 +70,7 @@ export function ClientEditor({ client }: Props) {
     setExtraContacts(
       parsedAdditionalContacts.map((c) => ({
         name: c.name,
-        phone: c.phone,
+        phone: c.phone ?? "",
         jobTitle: c.jobTitle ?? ""
       }))
     );
@@ -98,13 +98,14 @@ export function ClientEditor({ client }: Props) {
     const additionalContacts = extraContacts
       .map((x) => {
         const jt = x.jobTitle.trim();
+        const contact = x.phone.trim();
         return {
           name: x.name.trim(),
-          phone: x.phone.trim(),
+          ...(contact ? { phone: contact } : {}),
           ...(jt ? { jobTitle: jt } : {})
         };
       })
-      .filter((x) => x.name && x.phone);
+      .filter((x) => x.name);
     await fetch(`/api/clients/${client.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -132,41 +133,62 @@ export function ClientEditor({ client }: Props) {
         />
         <AddedByLine creator={client.createdBy} position="corner" />
       </div>
-      <form onSubmit={save} className="mb-4 grid gap-2 rounded-2xl bg-theme-card p-4 shadow-sm md:grid-cols-2">
-        <input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} required />
-        <div className="md:col-span-2 space-y-2">
-          <PrimaryContactWithPlus
-            contactPerson={form.contactPerson}
-            phone={form.phone}
-            onContactPerson={(v) => setForm({ ...form, contactPerson: v })}
-            onPhone={(v) => setForm({ ...form, phone: v })}
-            onAddExtra={addExtraContact}
-            addDisabled={!canAddExtraContact(extraContacts.length)}
+      <form
+        id={`client-editor-form-${client.id}`}
+        onSubmit={save}
+        className="mb-4 grid gap-2 rounded-2xl bg-theme-card p-4 pb-28 shadow-sm md:grid-cols-2 md:pb-8"
+      >
+        <div className="grid min-h-0 gap-2 md:col-span-2 md:grid-cols-2">
+          <input value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} required />
+          <div className="md:col-span-2 space-y-2">
+            <PrimaryContactWithPlus
+              contactPerson={form.contactPerson}
+              phone={form.phone}
+              onContactPerson={(v) => setForm({ ...form, contactPerson: v })}
+              onPhone={(v) => setForm({ ...form, phone: v })}
+              onAddExtra={addExtraContact}
+              addDisabled={!canAddExtraContact(extraContacts.length)}
+            />
+            <ClientExtraContactRows contacts={extraContacts} onChange={setExtraContacts} />
+          </div>
+          <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          <input value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} placeholder={t("sector")} />
+          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Props["client"]["status"] })}>
+            <option value="ACTIVE">{t("active")}</option>
+            <option value="PASSIVE">{t("passive")}</option>
+            <option value="POTENTIAL">{t("potential")}</option>
+          </select>
+          <textarea
+            className="md:col-span-2"
+            value={form.generalNotes}
+            onChange={(e) => setForm({ ...form, generalNotes: e.target.value })}
+            placeholder={t("general_notes")}
           />
-          <ClientExtraContactRows contacts={extraContacts} onChange={setExtraContacts} />
-        </div>
-        <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-        <input value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} placeholder={t("sector")} />
-        <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as Props["client"]["status"] })}>
-          <option value="ACTIVE">{t("active")}</option>
-          <option value="PASSIVE">{t("passive")}</option>
-          <option value="POTENTIAL">{t("potential")}</option>
-        </select>
-        <textarea
-          className="md:col-span-2"
-          value={form.generalNotes}
-          onChange={(e) => setForm({ ...form, generalNotes: e.target.value })}
-          placeholder={t("general_notes")}
-        />
-        <div className="flex gap-2 md:col-span-2">
-          <button disabled={loading} className="rounded-xl bg-theme-primary px-3 py-2 text-button font-medium text-theme-on-primary">
-            {loading ? t("saving") : t("save_client")}
-          </button>
-          <button type="button" onClick={remove} className="rounded-xl border border-theme-error/30 px-3 py-2 text-body text-theme-error">
-            {t("delete")}
-          </button>
         </div>
       </form>
+      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-30 md:bottom-4">
+        <div className="mx-auto w-full max-w-[1800px] px-4 sm:px-5 xl:px-7 2xl:px-9">
+          <div className="pointer-events-auto ml-auto w-full max-w-3xl rounded-xl border border-theme-border bg-theme-card/95 px-3 py-2 shadow-lg backdrop-blur">
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                form={`client-editor-form-${client.id}`}
+                disabled={loading}
+                className="rounded-xl bg-theme-primary px-3 py-2 text-button font-medium text-theme-on-primary"
+              >
+                {loading ? t("saving") : t("save_client")}
+              </button>
+              <button
+                type="button"
+                onClick={remove}
+                className="rounded-xl border border-theme-error/30 px-3 py-2 text-body text-theme-error"
+              >
+                {t("delete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 }

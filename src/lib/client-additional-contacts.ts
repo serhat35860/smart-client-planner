@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-export type AdditionalContact = { name: string; phone: string; jobTitle?: string };
+export type AdditionalContact = { name: string; phone?: string; jobTitle?: string };
 
 const MAX_CONTACTS = 20;
 
@@ -18,8 +18,9 @@ export function parseAdditionalContacts(value: unknown): AdditionalContact[] {
     const o = item as Record<string, unknown>;
     const name = typeof o.name === "string" ? o.name.trim() : "";
     const phone = typeof o.phone === "string" ? o.phone.trim() : "";
-    if (name && phone) {
-      const row: AdditionalContact = { name, phone };
+    if (name) {
+      const row: AdditionalContact = { name };
+      if (phone) row.phone = phone;
       const jt = readJobTitle(o);
       if (jt) row.jobTitle = jt;
       out.push(row);
@@ -37,8 +38,9 @@ export function sanitizeAdditionalContactsInput(raw: unknown): AdditionalContact
     const o = item as Record<string, unknown>;
     const name = typeof o.name === "string" ? o.name.trim() : "";
     const phone = typeof o.phone === "string" ? o.phone.trim() : "";
-    if (!name || !phone) continue;
-    const row: AdditionalContact = { name, phone };
+    if (!name) continue;
+    const row: AdditionalContact = { name };
+    if (phone) row.phone = phone;
     const jt = readJobTitle(o);
     if (jt) row.jobTitle = jt;
     out.push(row);

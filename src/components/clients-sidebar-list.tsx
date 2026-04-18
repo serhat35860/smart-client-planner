@@ -17,6 +17,7 @@ import { defaultLanguage, isSupportedLanguage } from "@/i18n/settings";
 
 export type ClientSidebarItem = {
   id: string;
+  fileNumber?: string | null;
   companyName: string;
   contactPerson: string;
   phone: string;
@@ -131,7 +132,7 @@ function ContactIconButton({
 function buildCallableTargets(detail: ClientSidebarItem): { name: string; phone: string }[] {
   const rows = [
     { name: detail.contactPerson, phone: detail.phone },
-    ...(detail.additionalContacts ?? []).map((c) => ({ name: c.name, phone: c.phone }))
+    ...(detail.additionalContacts ?? []).map((c) => ({ name: c.name, phone: c.phone ?? "" }))
   ];
   return rows.filter((r) => phoneDigitsOnly(r.phone).length > 0);
 }
@@ -253,6 +254,9 @@ export function ClientsSidebarList({
               }
             >
               <p className={`font-semibold ${isBtn ? "text-sm" : ""}`}>{client.companyName}</p>
+              {client.fileNumber?.trim() ? (
+                <p className="mt-0.5 text-caption font-medium text-theme-muted">{t("client_file_number")}: {client.fileNumber}</p>
+              ) : null}
               <p className={`text-theme-muted ${isBtn ? "text-xs" : "text-sm"}`}>
                 {client.contactPerson} — {t(client.status.toLowerCase() as "active" | "passive" | "potential")}
               </p>
@@ -275,18 +279,25 @@ export function ClientsSidebarList({
         >
           <div
             key={modalHtmlLang}
-            className="max-h-[72vh] w-full max-w-[22.5rem] overflow-y-auto rounded-2xl bg-theme-card p-5 shadow-xl"
+            className="flex h-[72vh] w-full max-w-[22.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl"
             lang={modalHtmlLang}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="client-detail-title" className="text-h3 font-semibold text-theme-text">
-              {t("client_details_modal_title")}
-            </h2>
-            <div className="relative mt-3 pb-5">
-              <p className="text-h2 font-semibold text-theme-text">{detail.companyName}</p>
-              <AddedByLine creator={detail.createdBy} position="corner" />
+            <div className="border-b border-theme-border p-5">
+              <h2 id="client-detail-title" className="text-h3 font-semibold text-theme-text">
+                {t("client_details_modal_title")}
+              </h2>
             </div>
-            <dl className="mt-4 space-y-3 text-sm">
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">
+              <div className="relative pb-5">
+                <p className="text-h2 font-semibold text-theme-text">{detail.companyName}</p>
+                <AddedByLine creator={detail.createdBy} position="corner" />
+              </div>
+              <dl className="mt-4 space-y-3 text-sm">
+              <div>
+                <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("client_file_number")}</dt>
+                <dd className="mt-0.5 text-theme-text">{detail.fileNumber?.trim() || "—"}</dd>
+              </div>
               <div>
                 <dt className="text-label font-medium uppercase tracking-wide text-theme-muted">{t("contact_person")}</dt>
                 <dd className="mt-0.5 text-theme-text">{detail.contactPerson}</dd>
@@ -335,9 +346,10 @@ export function ClientsSidebarList({
                   {detail.generalNotes?.trim() || "—"}
                 </dd>
               </div>
-            </dl>
+              </dl>
+            </div>
 
-            <div className="mt-6 border-t border-theme-border pt-4">
+            <div className="shrink-0 border-t border-theme-border p-5">
               <p className="text-center text-caption font-medium uppercase tracking-wide text-theme-muted">
                 {t("client_detail_contact_section")}
               </p>
@@ -395,22 +407,21 @@ export function ClientsSidebarList({
                   <Mail className="h-6 w-6" strokeWidth={2} />
                 </ContactIconLink>
               </div>
-            </div>
-
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Link
-                href={`/clients/${detail.id}`}
-                className="inline-flex flex-1 items-center justify-center rounded-xl bg-theme-primary px-4 py-2.5 text-center text-body font-medium text-theme-on-primary hover:bg-theme-primary-hover"
-              >
-                {t("client_open_edit_page")}
-              </Link>
-              <button
-                type="button"
-                onClick={() => setDetail(null)}
-                className="rounded-xl border border-theme-border px-4 py-2.5 text-body text-theme-text hover:bg-theme-subtle"
-              >
-                {t("close")}
-              </button>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <Link
+                  href={`/clients/${detail.id}`}
+                  className="inline-flex flex-1 items-center justify-center rounded-xl bg-theme-primary px-4 py-2.5 text-center text-body font-medium text-theme-on-primary hover:bg-theme-primary-hover"
+                >
+                  {t("client_open_edit_page")}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setDetail(null)}
+                  className="rounded-xl border border-theme-border px-4 py-2.5 text-body text-theme-text hover:bg-theme-subtle"
+                >
+                  {t("close")}
+                </button>
+              </div>
             </div>
           </div>
         </div>

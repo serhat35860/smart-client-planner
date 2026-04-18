@@ -1,7 +1,7 @@
 import type { WorkspaceRole } from "@prisma/client";
 
 export function isAdminRole(role: WorkspaceRole) {
-  return role === "ADMIN";
+  return role === "ADMIN" || role === "USER";
 }
 
 export function canViewByCreatorOrMention(input: {

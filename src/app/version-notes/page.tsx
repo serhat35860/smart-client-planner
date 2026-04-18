@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/shell";
 import { requireWorkspacePage } from "@/lib/workspace";
-import { productCapabilities, versionNotes } from "@/lib/version-notes";
+import { plannedNotInCurrentInstaller, productCapabilities, versionNotes } from "@/lib/version-notes";
 
 export const metadata: Metadata = {
   title: "Versiyon Notları"
@@ -14,7 +14,9 @@ export default async function VersionNotesPage() {
     <AppShell>
       <h1 className="mb-2 text-h2 font-semibold">Versiyon Notları</h1>
       <p className="mb-6 max-w-3xl text-body text-theme-muted">
-        Bu ekranda uygulamaya eklenen geliştirmeleri sürüm numarasıyla sıralı görebilirsiniz.
+        Bu ekranda uygulamaya eklenen geliştirmeleri sürüm etiketiyle (en yeniden eskiye) görebilirsiniz. Paket sürümü (
+        <code className="rounded bg-theme-subtle px-1 py-0.5 text-caption">package.json</code>) ile sürüm notu
+        numaraları farklı takip edilebilir.
       </p>
 
       <section className="mb-6 rounded-2xl bg-theme-card p-5 shadow-sm">
@@ -22,6 +24,19 @@ export default async function VersionNotesPage() {
         <ul className="list-disc space-y-1 pl-5 text-body text-theme-text">
           {productCapabilities.map((cap) => (
             <li key={cap}>{cap}</li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-theme-border bg-theme-card/80 p-5 shadow-sm">
+        <h2 className="mb-2 text-label font-semibold text-theme-text">Planlanan / bu pakette henüz yok</h2>
+        <p className="mb-3 max-w-3xl text-body text-theme-muted">
+          Aşağıdakiler yol haritasında veya ertelenmiş notlarda; mevcut masaüstü kurulum paketi veya son sürüm notu
+          (ör. v1.6.0) ile henüz paketlenmemiş olabilir.
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-body text-theme-text">
+          {plannedNotInCurrentInstaller.map((item) => (
+            <li key={item}>{item}</li>
           ))}
         </ul>
       </section>

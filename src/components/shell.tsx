@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav
-            className="hidden min-h-[2.5rem] min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto overflow-y-hidden md:flex"
+            className="hidden min-h-[2.5rem] min-w-0 flex-1 items-center justify-start gap-0.5 overflow-x-auto overflow-y-hidden md:flex md:pl-1"
             aria-label={t("app_name")}
           >
             {appNavItems.map((item) => (

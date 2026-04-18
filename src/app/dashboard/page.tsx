@@ -54,6 +54,7 @@ type CompletedTaskRow = {
 type PendingTaskRow = {
   id: string;
   title: string;
+  content: string | null;
   deadline: Date;
   priority: "LOW" | "MEDIUM" | "HIGH";
   color: string;
@@ -222,12 +223,17 @@ export default async function DashboardPage({
                 return (
                   <article
                     key={task.id}
-                    className={cn("relative rounded-2xl bg-theme-card p-3 shadow-card-lift", taskArticlePb)}
+                    className={cn("dashboard-task-card relative rounded-2xl bg-theme-card p-3 shadow-card-lift", taskArticlePb)}
                     style={noteSurfaceBgStyle(task.color)}
                   >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between lg:gap-2">
                       <div className="min-w-0">
-                        <h3 className="text-h3 font-semibold leading-snug">{task.title}</h3>
+                        <h3 className="text-h3 font-semibold leading-snug break-words">{task.title}</h3>
+                        {task.content?.trim() ? (
+                          <p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-sm text-theme-muted [overflow-wrap:anywhere]">
+                            {task.content.trim()}
+                          </p>
+                        ) : null}
                         <p className="mt-0.5 text-caption text-theme-muted">
                           {task.client?.companyName ? `${task.client.companyName} · ` : ""}
                           {formatDateTime24(task.deadline, lang)}
@@ -294,7 +300,7 @@ export default async function DashboardPage({
 
       <div className="dashboard-main-grid grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-7 xl:grid-cols-4 xl:gap-7">
         <section
-          className="min-w-0 dash-theme-panel dash-theme-panel--light p-4 md:p-6"
+          className="dashboard-panel-shell min-w-0 dash-theme-panel dash-theme-panel--light"
           aria-labelledby="dashboard-standalone-heading"
         >
           <div className="dash-theme-panel-rule mb-4 flex items-center gap-3 pb-3">
@@ -314,7 +320,7 @@ export default async function DashboardPage({
                 icon="notes"
               />
             ) : viewMode === "table" ? (
-              <div className="overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
+              <div className="dashboard-table-shell overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
                 <table className="min-w-full text-body">
                   <thead className="bg-theme-subtle text-label font-medium text-theme-muted">
                     <tr>
@@ -359,7 +365,7 @@ export default async function DashboardPage({
         </section>
 
         <section
-          className="min-w-0 dash-theme-panel p-4 md:p-6"
+          className="dashboard-panel-shell min-w-0 dash-theme-panel"
           aria-labelledby="dashboard-reminders-heading"
         >
           <div className="dash-theme-panel-rule mb-4 flex items-center justify-between gap-3 pb-3">
@@ -384,7 +390,7 @@ export default async function DashboardPage({
                 icon="reminders"
               />
             ) : viewMode === "table" ? (
-              <div className="overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
+              <div className="dashboard-table-shell overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
                 <table className="min-w-full text-body">
                   <thead className="bg-theme-subtle text-label font-medium text-theme-muted">
                     <tr>
@@ -434,7 +440,7 @@ export default async function DashboardPage({
         </section>
 
         <section
-          className="min-w-0 dash-theme-panel dash-theme-panel--strong p-4 md:p-6"
+          className="dashboard-panel-shell min-w-0 dash-theme-panel dash-theme-panel--strong"
           aria-labelledby="dashboard-tasks-panel-heading"
         >
           <div className="dash-theme-panel-rule mb-4 flex items-center justify-between gap-3 pb-3">
@@ -459,7 +465,7 @@ export default async function DashboardPage({
                 icon="tasks"
               />
             ) : viewMode === "table" ? (
-              <div className="overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
+              <div className="dashboard-table-shell overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
                 <table className="min-w-full text-body">
                   <thead className="bg-theme-subtle text-label font-medium text-theme-muted">
                     <tr>
@@ -488,12 +494,17 @@ export default async function DashboardPage({
                 return (
                   <article
                     key={task.id}
-                    className={cn("relative rounded-2xl bg-theme-card p-3 shadow-card-lift", taskArticlePb)}
+                    className={cn("dashboard-task-card relative rounded-2xl bg-theme-card p-3 shadow-card-lift", taskArticlePb)}
                     style={noteSurfaceBgStyle(task.color)}
                   >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                    <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between lg:gap-2">
                       <div className="min-w-0">
-                        <h3 className="text-h3 font-semibold leading-snug">{task.title}</h3>
+                        <h3 className="text-h3 font-semibold leading-snug break-words">{task.title}</h3>
+                        {task.content?.trim() ? (
+                          <p className="mt-1 line-clamp-3 whitespace-pre-wrap break-words text-sm text-theme-muted [overflow-wrap:anywhere]">
+                            {task.content.trim()}
+                          </p>
+                        ) : null}
                         <p className="mt-0.5 text-caption text-theme-muted">
                           {task.client?.companyName ? `${task.client.companyName} · ` : ""}
                           {formatDateTime24(task.deadline, lang)}
@@ -523,7 +534,7 @@ export default async function DashboardPage({
         </section>
 
         <section
-          className="min-w-0 dash-theme-panel p-4 md:p-6"
+          className="dashboard-panel-shell min-w-0 dash-theme-panel"
           aria-labelledby="dashboard-completed-panel-heading"
         >
           <div className="dash-theme-panel-rule mb-4 flex items-center gap-3 pb-3">
@@ -543,7 +554,7 @@ export default async function DashboardPage({
                 icon="done"
               />
             ) : viewMode === "table" ? (
-              <div className="overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
+              <div className="dashboard-table-shell overflow-x-auto rounded-2xl bg-theme-card shadow-card-lift">
                 <table className="min-w-full text-body">
                   <thead className="bg-theme-subtle text-label font-medium text-theme-muted">
                     <tr>

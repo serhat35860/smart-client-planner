@@ -13,7 +13,7 @@ import { readJsonBody } from "@/lib/read-json";
 
 const contactPair = z.object({
   name: z.string().max(200),
-  phone: z.string().max(80),
+  phone: z.string().max(80).optional(),
   jobTitle: z.string().max(120).optional()
 });
 

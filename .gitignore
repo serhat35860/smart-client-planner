@@ -24,3 +24,8 @@ Thumbs.db
 
 .vercel
 .env*.local
+
+# Cursor: yerel çıktılar repoya girmesin; paylaşılan kurallar .cursor/rules altında
+.cursor/*
+!.cursor/rules/
+.cursor/video-review/

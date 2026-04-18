@@ -67,7 +67,7 @@ export function ActiveTasksMetric({
   return (
     <div
       className={cn(
-        "dash-premium-metric flex h-full min-h-[5.25rem] flex-col p-3.5 text-[var(--ui-accent-contrast)]",
+        "dashboard-metric-card dash-premium-metric flex h-full min-h-[5.25rem] flex-col p-3.5 text-[var(--ui-accent-contrast)]",
         className
       )}
       style={{ backgroundColor: "var(--ui-accent)" }}

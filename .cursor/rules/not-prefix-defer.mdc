@@ -1,0 +1,11 @@
+---
+description: Defer requests starting with "not" instead of executing
+alwaysApply: true
+---
+
+# Not Prefix Defer Rule
+
+- If a user request starts with `not` (case-insensitive), do not execute that request immediately.
+- Do not make code edits, run commands, or apply changes for that request.
+- Add the request as a pending item to the to-do list so it can be handled later when the user says the time has come.
+- Confirm briefly that it has been deferred and is waiting in the to-do list.

@@ -1,27 +1,14 @@
 {
   "name": "smart-client-planner",
-  "version": "1.1.1",
-  "description": "Sticky-note inspired customer planner and mini CRM (web + optional Windows desktop).",
+  "version": "1.0.6",
   "main": "dist-electron/main.js",
   "private": true,
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/serhat35860/smart-client-planner.git"
-  },
-  "bugs": {
-    "url": "https://github.com/serhat35860/smart-client-planner/issues"
-  },
-  "homepage": "https://github.com/serhat35860/smart-client-planner#readme",
-  "author": "serhat35860",
   "scripts": {
     "predev": "node scripts/validate-dev-env.mjs && node scripts/prisma-generate-try.mjs",
     "prebuild": "node scripts/validate-dev-env.mjs",
     "dev": "next dev --turbopack -p 3022 -H 0.0.0.0",
     "dev:fast": "next dev -p 3022 -H 0.0.0.0",
     "dev:bare": "next dev --turbopack -p 3022 -H 0.0.0.0",
-    "dev:stop": "node scripts/stop-dev-locks.mjs",
-    "cache:clear": "node scripts/clear-next-cache.mjs",
-    "pre-release": "node scripts/pre-release.mjs",
     "build": "node scripts/prisma-generate-try.mjs && next build",
     "desktop:prebuild": "npm run build && node scripts/prepare-desktop.mjs && node scripts/prepare-desktop-db.mjs",
     "desktop:dev": "concurrently -k \"npm:dev:fast\" \"npm:electron:dev\"",
@@ -32,8 +19,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "release:check": "npm run lint && node scripts/prisma-generate-try.mjs && npx tsc --noEmit && vitest run",
-    "release:check:full": "npm run release:check && npm run build",
+    "release:check": "node scripts/release-check.mjs",
     "check": "npm run lint && npm run build",
     "security:audit": "npm audit --audit-level=high",
     "prisma:generate": "prisma generate",
@@ -78,14 +64,17 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
-    "vitest": "^3.2.4",
+    "vitest": "^3.0.9",
     "wait-on": "^9.0.4"
   },
   "build": {
     "appId": "com.smartclientplanner.desktop",
     "productName": "Smart Client Planner",
     "asarUnpack": [
-      ".next/standalone/**"
+      ".next/standalone/**",
+      ".next/standalone/node_modules/**",
+      "node_modules/@prisma/client/**",
+      "node_modules/[.]prisma/**"
     ],
     "directories": {
       "output": "dist-desktop"
@@ -93,7 +82,10 @@
     "files": [
       "dist-electron/**/*",
       ".next/standalone/**/*",
+      ".next/standalone/node_modules/**/*",
       ".next/static/**/*",
+      "node_modules/@prisma/client/**/*",
+      "node_modules/[.]prisma/**/*",
       "public/**/*",
       "desktop-template.db",
       "package.json",
@@ -105,8 +97,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "serhat35860",
-        "repo": "smart-client-planner"
+        "owner": "REPLACE_ME",
+        "repo": "REPLACE_ME"
       }
     ],
     "win": {
@@ -119,7 +111,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "runAfterFinish": true
+      "runAfterFinish": false
     }
   },
   "prisma": {

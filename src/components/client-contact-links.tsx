@@ -49,7 +49,7 @@ export function ClientContactLinks({
       return { name: contactPerson, phone };
     }
     const c = additionalContacts[idx];
-    return { name: c.name, phone: c.phone, jobTitle: c.jobTitle };
+    return { name: c.name, phone: c.phone ?? "", jobTitle: c.jobTitle };
   }, [contactKey, contactPerson, phone, additionalContacts]);
 
   const digits = phoneDigitsOnly(active.phone);

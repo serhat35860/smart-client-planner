@@ -3,10 +3,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { ReportRowJson } from "@/lib/report-types";
 import { parseAdditionalContacts } from "@/lib/client-additional-contacts";
-import { sanitizeAuditMeta } from "@/lib/sanitize-audit-meta";
-import { canManageWorkspace, requireWorkspace } from "@/lib/workspace";
+import { sanitizeAuditMetaForDisplay } from "@/lib/sanitize-audit-meta";
+import { requireWorkspace } from "@/lib/workspace";
 
 const deadlineFmt = "yyyy-MM-dd HH:mm";
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
+const MODEL_FETCH_LIMIT = 2000;
+
+type ReportTypeFilter = "ALL" | "CLIENT" | "NOTE" | "TASK" | "TAG" | "AUDIT";
+type ReportResultFilter = "ALL" | "SUCCESS" | "DENIED";
 
 function displayUserName(email: string | null, name: string | null) {
   const n = name?.trim();
@@ -23,14 +29,51 @@ function wasUpdatedAfterCreate(updatedAt: Date, createdAt: Date) {
   return updatedAt.getTime() > createdAt.getTime();
 }
 
+function assigneeUserIdFromMeta(meta: unknown): string | null {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const value = (meta as Record<string, unknown>).assigneeUserId;
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function parsePositiveInt(raw: string | null, fallback: number) {
+  if (!raw) return fallback;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function matchesTypeFilter(kind: ReportRowJson["kind"], filter: ReportTypeFilter) {
+  if (filter === "ALL") return true;
+  if (filter === "CLIENT") return kind === "client" || kind === "client_updated";
+  if (filter === "NOTE") return kind === "note" || kind === "note_updated";
+  if (filter === "TASK") return kind === "task_created" || kind === "task_completed" || kind === "task_failed" || kind === "task_updated";
+  if (filter === "TAG") return kind === "tag_created";
+  if (filter === "AUDIT") return kind === "audit";
+  return true;
+}
+
+function matchesResultFilter(row: ReportRowJson, filter: ReportResultFilter) {
+  if (filter === "ALL") return true;
+  if (filter === "DENIED") return row.kind === "audit" && row.title.endsWith(".denied");
+  if (filter === "SUCCESS") return row.kind !== "audit" || !row.title.endsWith(".denied");
+  return true;
+}
+
 export async function GET(req: Request) {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageWorkspace(ctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const url = new URL(req.url);
   const fromRaw = url.searchParams.get("from");
   const toRaw = url.searchParams.get("to");
+  const typeFilterRaw = (url.searchParams.get("typeFilter") ?? "ALL").toUpperCase();
+  const resultFilterRaw = (url.searchParams.get("resultFilter") ?? "ALL").toUpperCase();
+  const page = parsePositiveInt(url.searchParams.get("page"), 1);
+  const pageSize = Math.min(parsePositiveInt(url.searchParams.get("pageSize"), DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE);
+  const typeFilter: ReportTypeFilter =
+    typeFilterRaw === "CLIENT" || typeFilterRaw === "NOTE" || typeFilterRaw === "TASK" || typeFilterRaw === "TAG" || typeFilterRaw === "AUDIT"
+      ? typeFilterRaw
+      : "ALL";
+  const resultFilter: ReportResultFilter = resultFilterRaw === "SUCCESS" || resultFilterRaw === "DENIED" ? resultFilterRaw : "ALL";
   if (!fromRaw || !toRaw) {
     return NextResponse.json({ error: "Missing from or to" }, { status: 400 });
   }
@@ -64,7 +107,8 @@ export async function GET(req: Request) {
         createdBy: { select: { email: true, name: true } },
         updatedBy: { select: { email: true, name: true } }
       },
-      orderBy: { updatedAt: "desc" }
+      orderBy: { updatedAt: "desc" },
+      take: MODEL_FETCH_LIMIT
     }),
     prisma.note.findMany({
       where: { workspaceId: wsId, ...dateOr },
@@ -73,7 +117,8 @@ export async function GET(req: Request) {
         createdBy: { select: { email: true, name: true } },
         updatedBy: { select: { email: true, name: true } }
       },
-      orderBy: { updatedAt: "desc" }
+      orderBy: { updatedAt: "desc" },
+      take: MODEL_FETCH_LIMIT
     }),
     prisma.task.findMany({
       where: { workspaceId: wsId, ...dateOr },
@@ -82,12 +127,14 @@ export async function GET(req: Request) {
         createdBy: { select: { email: true, name: true } },
         updatedBy: { select: { email: true, name: true } }
       },
-      orderBy: { updatedAt: "desc" }
+      orderBy: { updatedAt: "desc" },
+      take: MODEL_FETCH_LIMIT
     }),
     prisma.tag.findMany({
       where: { workspaceId: wsId, createdAt: { gte: fromD, lte: toD } },
       include: { createdBy: { select: { email: true, name: true } } },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      take: MODEL_FETCH_LIMIT
     }),
     prisma.auditEvent.findMany({
       where: {
@@ -95,11 +142,20 @@ export async function GET(req: Request) {
         OR: [{ workspaceId: wsId }, { actorUserId: { in: memberIds.length ? memberIds : ["__none__"] } }]
       },
       include: { actor: { select: { email: true, name: true } } },
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
+      take: MODEL_FETCH_LIMIT
     })
   ]);
 
   const rows: ReportRowJson[] = [];
+  const assigneeIds = [...new Set(auditEvents.map((ev) => assigneeUserIdFromMeta(ev.metaJson)).filter(Boolean))] as string[];
+  const assigneeUsers = assigneeIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: assigneeIds } },
+        select: { id: true, email: true, name: true }
+      })
+    : [];
+  const assigneeNameById = new Map(assigneeUsers.map((u) => [u.id, displayUserName(u.email, u.name) ?? u.email ?? u.id]));
 
   for (const c of clients) {
     if (inRange(c.createdAt, fromD, toD)) {
@@ -240,7 +296,15 @@ export async function GET(req: Request) {
   }
 
   for (const ev of auditEvents) {
-    const metaPart = sanitizeAuditMeta(ev.metaJson);
+    let metaForDisplay: unknown = ev.metaJson;
+    const assigneeId = assigneeUserIdFromMeta(ev.metaJson);
+    if (assigneeId && ev.metaJson && typeof ev.metaJson === "object" && !Array.isArray(ev.metaJson)) {
+      const assigneeName = assigneeNameById.get(assigneeId);
+      if (assigneeName) {
+        metaForDisplay = { ...(ev.metaJson as Record<string, unknown>), assigneeUserName: assigneeName };
+      }
+    }
+    const metaPart = sanitizeAuditMetaForDisplay(metaForDisplay);
     const detail = [metaPart, ev.ipAddress ? `IP: ${ev.ipAddress}` : null].filter(Boolean).join(" · ");
     rows.push({
       id: `audit-${ev.id}`,
@@ -254,11 +318,20 @@ export async function GET(req: Request) {
   }
 
   rows.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+  const filteredRows = rows.filter((row) => matchesTypeFilter(row.kind, typeFilter) && matchesResultFilter(row, resultFilter));
+  const totalRows = filteredRows.length;
+  const start = (page - 1) * pageSize;
+  const pagedRows = filteredRows.slice(start, start + pageSize);
+  const hasMore = start + pageSize < totalRows;
 
   return NextResponse.json({
     workspaceName: ctx.workspace.name,
     from: fromD.toISOString(),
     to: toD.toISOString(),
-    rows
+    rows: pagedRows,
+    totalRows,
+    page,
+    pageSize,
+    hasMore
   });
 }

@@ -1,5 +1,5 @@
-/** Audit `metaJson` için rapor / log satırı metni; hassas anahtarları maskele. */
-export function sanitizeAuditMeta(meta: unknown): string {
+/** Audit `metaJson` için rapor / log metni; hassas anahtarları maskele. */
+export function sanitizeAuditMetaForDisplay(meta: unknown): string {
   if (meta == null) return "—";
   if (typeof meta !== "object") return String(meta);
   const obj = { ...(meta as Record<string, unknown>) };

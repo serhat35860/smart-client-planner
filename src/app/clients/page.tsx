@@ -5,11 +5,12 @@ import { QuickNoteFormWithRefresh } from "@/components/quick-note-form-with-refr
 import { EditableNoteCard } from "@/components/editable-note-card";
 import { ClientContactLinks } from "@/components/client-contact-links";
 import { ClientsSidebarList } from "@/components/clients-sidebar-list";
+import { ClientsExcelToolbar } from "@/components/clients-excel-toolbar";
 import { ClientsFiltersForm } from "@/components/clients-filters-form";
 import { prisma } from "@/lib/prisma";
 import { creatorSelect, mapNoteMentions, mapNoteTagsToDisplay } from "@/lib/creator-preview";
 import { noteCardInclude } from "@/lib/note-include";
-import { canManageWorkspace, requireWorkspacePage } from "@/lib/workspace";
+import { requireWorkspacePage } from "@/lib/workspace";
 import { getServerT } from "@/i18n/server";
 import { parseAdditionalContacts } from "@/lib/client-additional-contacts";
 
@@ -31,9 +32,11 @@ export default async function ClientsPage({
   const ctx = await requireWorkspacePage();
   const { t } = await getServerT();
   const ws = ctx.workspace;
-  if (!canManageWorkspace(ctx.role)) return <AppShell><div className="rounded-2xl bg-theme-card p-4 text-body text-theme-muted shadow-sm">{t("forbidden_area")}</div></AppShell>;
   const params = await searchParams;
   const query = (params.q ?? "").trim();
+  const yearQ = /^\d{4}$/.test(query) ? Number.parseInt(query, 10) : null;
+  const yearStart = yearQ ? new Date(Date.UTC(yearQ, 0, 1, 0, 0, 0)) : null;
+  const yearEnd = yearQ ? new Date(Date.UTC(yearQ + 1, 0, 1, 0, 0, 0)) : null;
   const statusFilter = params.status ?? "ALL";
   const mentionedUserId = (params.mentionedUserId ?? "").trim() || null;
 
@@ -42,7 +45,14 @@ export default async function ClientsPage({
       workspaceId: ws.id,
       ...(query
         ? {
-            OR: [{ companyName: { contains: query } }, { contactPerson: { contains: query } }]
+            OR: [
+              { companyName: { contains: query } },
+              { contactPerson: { contains: query } },
+              { fileNumber: { contains: query } },
+              ...(yearQ && yearStart && yearEnd
+                ? [{ createdAt: { gte: yearStart, lt: yearEnd } }, { fileNumber: { startsWith: `${yearQ}-` } }]
+                : [])
+            ]
           }
         : {}),
       ...(statusFilter !== "ALL" ? { status: statusFilter } : {}),
@@ -59,6 +69,7 @@ export default async function ClientsPage({
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
+      fileNumber: true,
       companyName: true,
       contactPerson: true,
       phone: true,
@@ -88,106 +99,120 @@ export default async function ClientsPage({
 
   return (
     <AppShell>
-      <div className="grid gap-5 lg:grid-cols-[minmax(280px,340px)_1fr]">
-        <aside className="flex min-h-0 flex-col gap-4 lg:max-h-[calc(100vh-8rem)]">
-          <ClientsAddClientPanel
-            preserveQuery={query}
-            preserveStatus={statusFilter}
-            preserveMentionedUserId={mentionedUserId}
-          />
-          <section className="flex min-h-0 flex-1 flex-col rounded-2xl bg-theme-card p-3 shadow-sm">
-            <h2 className="mb-2 shrink-0 text-label font-semibold text-theme-muted">{t("clients")}</h2>
-            <ClientsFiltersForm
-              initialQ={query}
-              initialStatus={statusFilter}
-              initialMentionUserId={mentionedUserId}
-              selectedClientId={selectedClientId}
+      <div className="space-y-4 pb-24">
+        <div className="grid gap-5 lg:grid-cols-[minmax(280px,340px)_1fr]">
+          <aside className="flex min-h-0 flex-col gap-4 lg:max-h-[calc(100vh-8rem)]">
+            <ClientsAddClientPanel
+              preserveQuery={query}
+              preserveStatus={statusFilter}
+              preserveMentionedUserId={mentionedUserId}
             />
-            <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
-              <ClientsSidebarList
-                clients={clients.map((c) => ({
-                  id: c.id,
-                  companyName: c.companyName,
-                  contactPerson: c.contactPerson,
-                  phone: c.phone,
-                  email: c.email,
-                  sector: c.sector,
-                  generalNotes: c.generalNotes,
-                  status: c.status,
-                  notesCount: c._count.notes,
-                  createdBy: c.createdBy,
-                  additionalContacts: parseAdditionalContacts(c.additionalContacts)
-                }))}
+            <section className="flex min-h-0 flex-1 flex-col rounded-2xl bg-theme-card p-3 shadow-sm">
+              <h2 className="mb-2 shrink-0 text-label font-semibold text-theme-muted">{t("clients")}</h2>
+              <ClientsFiltersForm
+                initialQ={query}
+                initialStatus={statusFilter}
+                initialMentionUserId={mentionedUserId}
                 selectedClientId={selectedClientId}
-                query={query}
-                statusFilter={statusFilter}
-                mentionedUserId={mentionedUserId}
-                rowStyle="button"
               />
-              {clients.length === 0 ? <p className="text-body text-theme-muted">{t("no_clients_found")}</p> : null}
-            </div>
-          </section>
-        </aside>
-
-        <section className="min-w-0 space-y-4">
-          {selectedClient ? (
-            <>
-              <div className="rounded-2xl bg-theme-card p-4 shadow-sm">
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-h2 font-semibold">{selectedClient.companyName}</h2>
-                    <p className="text-body text-theme-muted">{selectedClient.contactPerson}</p>
-                  </div>
-                  <div className="flex min-w-0 max-w-full flex-col items-end gap-2 sm:max-w-[min(100%,24rem)]">
-                    <ClientContactLinks
-                      contactPerson={selectedClient.contactPerson}
-                      phone={selectedClient.phone}
-                      email={selectedClient.email}
-                      additionalContacts={parseAdditionalContacts(selectedClient.additionalContacts)}
-                      className="flex flex-wrap justify-end gap-x-4 gap-y-1"
-                    />
-                  </div>
-                </div>
-                <QuickNoteFormWithRefresh
-                  clientId={selectedClient.id}
-                  optionalNextDateLabelKey="clients_quick_note_reminder_heading"
+              <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+                <ClientsSidebarList
+                  clients={clients.map((c) => ({
+                    id: c.id,
+                    fileNumber: c.fileNumber,
+                    companyName: c.companyName,
+                    contactPerson: c.contactPerson,
+                    phone: c.phone,
+                    email: c.email,
+                    sector: c.sector,
+                    generalNotes: c.generalNotes,
+                    status: c.status,
+                    notesCount: c._count.notes,
+                    createdBy: c.createdBy,
+                    additionalContacts: parseAdditionalContacts(c.additionalContacts)
+                  }))}
+                  selectedClientId={selectedClientId}
+                  query={query}
+                  statusFilter={statusFilter}
+                  mentionedUserId={mentionedUserId}
+                  rowStyle="button"
                 />
+                {clients.length === 0 ? <p className="text-body text-theme-muted">{t("no_clients_found")}</p> : null}
               </div>
+            </section>
+          </aside>
 
-              <div className="rounded-2xl bg-theme-card p-4 shadow-sm">
-                <h3 className="mb-3 text-label font-semibold text-theme-muted">{t("notes")}</h3>
-                {selectedClient.notes.length === 0 ? (
-                  <p className="text-body text-theme-muted">{t("no_notes_yet")}</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedClient.notes.map((note) => (
-                      <EditableNoteCard
-                        key={note.id}
-                        listPresentation="compact"
-                        noteId={note.id}
-                        title={note.title}
-                        content={note.content}
-                        createdAt={note.createdAt}
-                        nextActionDate={note.nextActionDate}
-                        remindBeforeMinutes={note.remindBeforeMinutes}
-                        tags={mapNoteTagsToDisplay(note.tags)}
-                        color={note.color}
-                        clientId={note.clientId}
-                        hasLinkedTask={!!note.task}
-                        createdBy={note.createdBy}
-                        updatedBy={note.updatedBy}
-                        editedByOtherMember={note.editedByOtherMember}
-                        mentions={mapNoteMentions(note.mentions)}
+          <section className="min-w-0 space-y-4">
+            {selectedClient ? (
+              <>
+                <div className="rounded-2xl bg-theme-card p-4 shadow-sm">
+                  <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-h2 font-semibold">{selectedClient.companyName}</h2>
+                      <p className="text-body text-theme-muted">{selectedClient.contactPerson}</p>
+                    </div>
+                    <div className="flex min-w-0 max-w-full flex-col items-end gap-2 sm:max-w-[min(100%,24rem)]">
+                      <ClientContactLinks
+                        contactPerson={selectedClient.contactPerson}
+                        phone={selectedClient.phone}
+                        email={selectedClient.email}
+                        additionalContacts={parseAdditionalContacts(selectedClient.additionalContacts)}
+                        className="flex flex-wrap justify-end gap-x-4 gap-y-1"
                       />
-                    ))}
+                    </div>
                   </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="rounded-2xl bg-theme-card p-4 text-body text-theme-muted shadow-sm">{t("select_client")}</div>
-          )}
-        </section>
+                  <QuickNoteFormWithRefresh
+                    clientId={selectedClient.id}
+                    optionalNextDateLabelKey="clients_quick_note_reminder_heading"
+                  />
+                </div>
+
+                <div className="rounded-2xl bg-theme-card p-4 shadow-sm">
+                  <h3 className="mb-3 text-label font-semibold text-theme-muted">{t("notes")}</h3>
+                  {selectedClient.notes.length === 0 ? (
+                    <p className="text-body text-theme-muted">{t("no_notes_yet")}</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedClient.notes.map((note) => (
+                        <EditableNoteCard
+                          key={note.id}
+                          listPresentation="compact"
+                          noteId={note.id}
+                          title={note.title}
+                          content={note.content}
+                          createdAt={note.createdAt}
+                          nextActionDate={note.nextActionDate}
+                          remindBeforeMinutes={note.remindBeforeMinutes}
+                          tags={mapNoteTagsToDisplay(note.tags)}
+                          color={note.color}
+                          clientId={note.clientId}
+                          hasLinkedTask={!!note.task}
+                          createdBy={note.createdBy}
+                          updatedBy={note.updatedBy}
+                          editedByOtherMember={note.editedByOtherMember}
+                          mentions={mapNoteMentions(note.mentions)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="rounded-2xl bg-theme-card p-4 text-body text-theme-muted shadow-sm">{t("select_client")}</div>
+            )}
+          </section>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-theme-border/80 bg-theme-card/95 backdrop-blur">
+          <div className="mx-auto max-w-[1200px] px-4 py-3">
+            <div className={ctx.role === "ADMIN" ? "" : "pointer-events-none opacity-50"}>
+              <ClientsExcelToolbar />
+            </div>
+            {ctx.role !== "ADMIN" ? (
+              <p className="mt-2 text-xs text-theme-muted">{t("clients_excel_admin_only_hint")}</p>
+            ) : null}
+          </div>
+        </div>
       </div>
     </AppShell>
   );

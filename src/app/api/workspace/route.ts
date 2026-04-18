@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { AuditEventType } from "@/lib/audit-event-types";
-import { canManageWorkspace, requireWorkspace, workspaceMembersVisibleWhere } from "@/lib/workspace";
+import { requireWorkspace, workspaceMembersVisibleWhere } from "@/lib/workspace";
 import { logWorkspaceActivity } from "@/lib/workspace-audit";
 import { readJsonBody } from "@/lib/read-json";
 
@@ -33,7 +33,7 @@ const patchSchema = z.object({ name: z.string().min(1).max(120) });
 export async function PATCH(req: Request) {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageWorkspace(ctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (ctx.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await readJsonBody(req);
   if (!body.ok) return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });

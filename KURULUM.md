@@ -2,8 +2,6 @@
 
 Bu dosya projeyi sıfırdan çalışır hale getirmek için gereken adımları özetler.
 
-**Uçtan uca işletim rehberi:** [`docs/detayli-tarif.md`](docs/detayli-tarif.md)
-
 ## Gereksinimler
 
 - **Node.js** 20.9 veya üzeri (`package.json` içinde `engines` tanımlı)
@@ -58,7 +56,7 @@ Turbopack olmadan çalıştırmak isterseniz:
 npm run dev:fast
 ```
 
-Tarayıcı: [http://localhost:3022](http://localhost:3022) (`package.json` içinde `dev` script’i bu portu kullanır.)
+Tarayıcı: [http://localhost:3000](http://localhost:3000)
 
 **Demo giriş:**
 
@@ -71,7 +69,7 @@ Tarayıcı: [http://localhost:3022](http://localhost:3022) (`package.json` için
 - **Mobil (Android / iPhone):** Chrome veya Safari’de menüden **“Ana ekrana ekle”** / **“Uygulama yükle”** ile tam ekran uygulama gibi açılabilir (`manifest` + ikon).
 - **Masaüstü (Windows / Mac):** Chrome / Edge’de adres çubuğundaki **yükle** simgesiyle **PWA** olarak kurulabilir; ayrı pencerede çalışır.
 
-Üretimde PWA’nın tam özellikleri için sitenin **HTTPS** üzerinden yayınlanması gerekir. Yerelde `http://localhost:3022` ile de test edebilirsiniz.
+Üretimde PWA’nın tam özellikleri için sitenin **HTTPS** üzerinden yayınlanması gerekir. Yerelde `http://localhost:3000` ile de test edebilirsiniz.
 
 ## Dil (i18n)
 

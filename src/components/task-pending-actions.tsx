@@ -93,7 +93,7 @@ export function TaskPendingActions({
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col items-stretch gap-2">
         <MarkDoneButton taskId={taskId} />
         <button
           type="button"

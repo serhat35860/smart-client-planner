@@ -110,6 +110,7 @@ export default async function TasksPage({
               task={{
                 id: task.id,
                 title: task.title,
+                content: task.content,
                 deadlineIso: task.deadline.toISOString(),
                 priority: task.priority,
                 color: task.color,

@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { QuickNoteForm } from "@/components/quick-note-form";
 import { MentionAtCombo } from "@/components/mention-at-combo";
 import { useWorkspaceClientsQuery } from "@/hooks/use-workspace-clients-query";
+import { cn } from "@/lib/utils";
 
 type ApiClient = {
   id: string;
@@ -18,6 +19,8 @@ type Step = "reminder_choose" | "pick" | "reminder_note" | "reminder_standalone"
 export function QuickReminderActionModal() {
   const { t } = useTranslation();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("reminder_choose");
   const [selectedClient, setSelectedClient] = useState<ApiClient | null>(null);
@@ -53,6 +56,16 @@ export function QuickReminderActionModal() {
     setOpen(true);
   }
 
+  useEffect(() => {
+    const shouldAutoOpen = searchParams.get("newReminder") === "1";
+    if (!shouldAutoOpen || open) return;
+    openModal();
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("newReminder");
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+  }, [open, pathname, router, searchParams]);
+
   function onClientPicked(c: ApiClient) {
     setSelectedClient(c);
     setStep("reminder_note");
@@ -68,6 +81,7 @@ export function QuickReminderActionModal() {
           : t("reminder_standalone_title");
 
   const showFooter = step === "reminder_choose" || step === "pick";
+  const reminderFormStep = step === "reminder_note" || step === "reminder_standalone";
 
   return (
     <>
@@ -89,7 +103,7 @@ export function QuickReminderActionModal() {
           aria-modal="true"
           aria-labelledby="quick-reminder-modal-title"
         >
-          <div className="flex max-h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
+          <div className="flex h-[72vh] w-full max-w-[25.5rem] flex-col overflow-hidden rounded-2xl bg-theme-card shadow-xl">
             <div className="border-b border-theme-border p-4">
               <h2 id="quick-reminder-modal-title" className="text-h3 font-semibold">
                 {modalTitle}
@@ -101,7 +115,7 @@ export function QuickReminderActionModal() {
               ) : null}
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <div className={cn("min-h-0 flex-1 p-4", reminderFormStep ? "overflow-hidden" : "overflow-y-auto")}>
               {step === "reminder_choose" ? (
                 <div className="grid gap-3">
                   <button
@@ -182,7 +196,7 @@ export function QuickReminderActionModal() {
               ) : null}
 
               {step === "reminder_note" && selectedClient ? (
-                <div className="space-y-3">
+                <div className="flex h-full min-h-0 flex-col gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -193,23 +207,25 @@ export function QuickReminderActionModal() {
                   >
                     ← {t("back")}
                   </button>
-                  <p className="text-body text-theme-muted">{t("reminder_form_hint")}</p>
-                  <QuickNoteForm
-                    clientId={selectedClient.id}
-                    reminderRequired
-                    saveButtonKey="save_reminder"
-                    stickyFooter
-                    onCancel={closeAll}
-                    onSaved={() => {
-                      router.refresh();
-                      closeAll();
-                    }}
-                  />
+                  <p className="shrink-0 text-body text-theme-muted">{t("reminder_form_hint")}</p>
+                  <div className="min-h-0 flex-1 basis-0 overflow-hidden">
+                    <QuickNoteForm
+                      clientId={selectedClient.id}
+                      reminderRequired
+                      saveButtonKey="save_reminder"
+                      stickyFooter
+                      onCancel={closeAll}
+                      onSaved={() => {
+                        router.refresh();
+                        closeAll();
+                      }}
+                    />
+                  </div>
                 </div>
               ) : null}
 
               {step === "reminder_standalone" ? (
-                <div className="space-y-3">
+                <div className="flex h-full min-h-0 flex-col gap-3">
                   <button
                     type="button"
                     onClick={() => setStep("reminder_choose")}
@@ -217,17 +233,19 @@ export function QuickReminderActionModal() {
                   >
                     ← {t("back")}
                   </button>
-                  <p className="text-body text-theme-muted">{t("reminder_standalone_hint")}</p>
-                  <QuickNoteForm
-                    reminderRequired
-                    saveButtonKey="save_reminder"
-                    stickyFooter
-                    onCancel={closeAll}
-                    onSaved={() => {
-                      router.refresh();
-                      closeAll();
-                    }}
-                  />
+                  <p className="shrink-0 text-body text-theme-muted">{t("reminder_standalone_hint")}</p>
+                  <div className="min-h-0 flex-1 basis-0 overflow-hidden">
+                    <QuickNoteForm
+                      reminderRequired
+                      saveButtonKey="save_reminder"
+                      stickyFooter
+                      onCancel={closeAll}
+                      onSaved={() => {
+                        router.refresh();
+                        closeAll();
+                      }}
+                    />
+                  </div>
                 </div>
               ) : null}
             </div>

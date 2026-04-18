@@ -62,42 +62,38 @@ export async function requireWorkspacePage(): Promise<WorkspaceContext> {
 }
 
 export function canManageWorkspace(role: WorkspaceRole) {
-  return role === "ADMIN";
+  return role === "ADMIN" || role === "USER";
 }
 
-/** Üye listesi sorgusu: sahip tüm üyeleri, diğerleri yalnızca kendisini görür. */
+/** Üye listesi sorgusu: tüm roller workspace üyelerini görebilir. */
 export function workspaceMembersVisibleWhere(
   workspaceId: string,
   role: WorkspaceRole,
   userId: string
 ): Prisma.WorkspaceMemberWhereInput {
-  return role === "ADMIN" ? { workspaceId } : { workspaceId, userId };
+  void role;
+  void userId;
+  return { workspaceId };
 }
 
-/** Görev görünürlüğü: admin tümünü, user kendi/etiketli/atanan görevleri görür. */
+/** Görev görünürlüğü: tüm roller workspace görevlerini görebilir. */
 export function workspaceTasksVisibleWhere(
   workspaceId: string,
   role: WorkspaceRole,
   userId: string
 ): Prisma.TaskWhereInput {
-  return role === "ADMIN"
-    ? { workspaceId }
-    : {
-        workspaceId,
-        OR: [{ createdByUserId: userId }, { mentions: { some: { userId } } }, { assigneeUserId: userId }]
-      };
+  void role;
+  void userId;
+  return { workspaceId };
 }
 
-/** Not görünürlüğü: admin tümünü, user yalnızca etiketlendiği notları görür. */
+/** Not görünürlüğü: tüm roller workspace notlarını görebilir. */
 export function workspaceNotesVisibleWhere(
   workspaceId: string,
   role: WorkspaceRole,
   userId: string
 ): Prisma.NoteWhereInput {
-  return role === "ADMIN"
-    ? { workspaceId }
-    : {
-        workspaceId,
-        OR: [{ createdByUserId: userId }, { mentions: { some: { userId } } }]
-      };
+  void role;
+  void userId;
+  return { workspaceId };
 }

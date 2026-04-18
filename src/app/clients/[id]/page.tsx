@@ -4,7 +4,7 @@ import { AppShell } from "@/components/shell";
 import { prisma } from "@/lib/prisma";
 import { creatorSelect, mapNoteMentions, mapNoteTagsToDisplay } from "@/lib/creator-preview";
 import { noteCardInclude } from "@/lib/note-include";
-import { canManageWorkspace, requireWorkspace, requireWorkspacePage } from "@/lib/workspace";
+import { requireWorkspace, requireWorkspacePage } from "@/lib/workspace";
 import { EditableNoteCard } from "@/components/editable-note-card";
 import { QuickNoteFormWithRefresh } from "@/components/quick-note-form-with-refresh";
 import { ClientEditor } from "@/components/client-editor";
@@ -31,7 +31,6 @@ export default async function ClientDetailPage({
   searchParams: Promise<{ q?: string; tag?: string; mentionedUserId?: string }>;
 }) {
   const ctx = await requireWorkspacePage();
-  if (!canManageWorkspace(ctx.role)) redirect("/dashboard");
   const { id } = await params;
   const filters = await searchParams;
   const mentionedUserId = (filters.mentionedUserId ?? "").trim() || null;

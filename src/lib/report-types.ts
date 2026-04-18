@@ -25,4 +25,8 @@ export type ReportApiResponse = {
   from: string;
   to: string;
   rows: ReportRowJson[];
+  totalRows: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
 };

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { canManageWorkspace, requireWorkspace, workspaceMembersVisibleWhere } from "@/lib/workspace";
+import { requireWorkspace, workspaceMembersVisibleWhere } from "@/lib/workspace";
 import { fail, ok } from "@/lib/api-response";
 import { AuditEventType } from "@/lib/audit-event-types";
 import { logAuditEvent } from "@/lib/audit-log";
@@ -45,7 +45,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const ctx = await requireWorkspace();
   if (!ctx) return fail("unauthorized", "Authentication required.", 401);
-  if (!canManageWorkspace(ctx.role)) return fail("forbidden", "Only admin can create members.", 403);
+  if (ctx.role !== "ADMIN") return fail("forbidden", "Only admin can create members.", 403);
   const ip = getClientIp(req);
   const userAgent = req.headers.get("user-agent");
 

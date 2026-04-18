@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { appLanguageFromI18n, formatDateTime24 } from "@/lib/format-date";
@@ -197,6 +198,144 @@ export function TeamCreateMemberForm() {
           {loading ? t("loading") : t("team_member_create_submit")}
         </button>
       </form>
+    </div>
+  );
+}
+
+type TeamMemberListItem = {
+  id: string;
+  userId: string;
+  name: string | null;
+  email: string;
+  username: string | null;
+  role: "ADMIN" | "USER";
+  isActive: boolean;
+  createdAtIso: string;
+};
+
+export function TeamMembersModernPanel({
+  members,
+  canManage
+}: {
+  members: TeamMemberListItem[];
+  canManage: boolean;
+}) {
+  const { t, i18n } = useTranslation();
+  const lang = appLanguageFromI18n(i18n.language);
+  const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "ADMIN" | "USER">("ALL");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "ACTIVE" | "PASSIVE">("ALL");
+
+  const filteredMembers = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return members.filter((m) => {
+      if (roleFilter !== "ALL" && m.role !== roleFilter) return false;
+      if (statusFilter === "ACTIVE" && !m.isActive) return false;
+      if (statusFilter === "PASSIVE" && m.isActive) return false;
+      if (!normalized) return true;
+      return [m.name ?? "", m.email, m.username ?? ""].join(" ").toLowerCase().includes(normalized);
+    });
+  }, [members, query, roleFilter, statusFilter]);
+
+  const stats = useMemo(() => {
+    const total = members.length;
+    const active = members.filter((m) => m.isActive).length;
+    const admins = members.filter((m) => m.role === "ADMIN").length;
+    return { total, active, passive: total - active, admins };
+  }, [members]);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-theme-border bg-theme-subtle p-3">
+          <p className="text-xs text-theme-muted">{t("team_members")}</p>
+          <p className="text-xl font-semibold text-theme-text">{stats.total}</p>
+        </div>
+        <div className="rounded-xl border border-theme-border bg-theme-subtle p-3">
+          <p className="text-xs text-theme-muted">{t("team_member_status_active")}</p>
+          <p className="text-xl font-semibold text-theme-text">{stats.active}</p>
+        </div>
+        <div className="rounded-xl border border-theme-border bg-theme-subtle p-3">
+          <p className="text-xs text-theme-muted">{t("team_member_status_passive")}</p>
+          <p className="text-xl font-semibold text-theme-text">{stats.passive}</p>
+        </div>
+        <div className="rounded-xl border border-theme-border bg-theme-subtle p-3">
+          <p className="text-xs text-theme-muted">{t("team_role_owner")}</p>
+          <p className="text-xl font-semibold text-theme-text">{stats.admins}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search team member..."
+          className="sm:col-span-1"
+        />
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value as "ALL" | "ADMIN" | "USER")}
+          className="rounded-xl border border-theme-border px-3 py-2 text-body text-theme-text"
+        >
+          <option value="ALL">All roles</option>
+          <option value="ADMIN">{t("team_role_owner")}</option>
+          <option value="USER">{t("team_role_member")}</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "PASSIVE")}
+          className="rounded-xl border border-theme-border px-3 py-2 text-body text-theme-text"
+        >
+          <option value="ALL">All status</option>
+          <option value="ACTIVE">{t("team_member_status_active")}</option>
+          <option value="PASSIVE">{t("team_member_status_passive")}</option>
+        </select>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-theme-border">
+        <div className="hidden grid-cols-12 gap-2 border-b border-theme-border bg-theme-subtle px-3 py-2 text-xs font-semibold text-theme-muted md:grid">
+          <p className="col-span-4">{t("team_members")}</p>
+          <p className="col-span-2">{t("email")}</p>
+          <p className="col-span-2">{t("team_member_status")}</p>
+          <p className="col-span-2">{t("team_role_owner")}</p>
+          <p className="col-span-2 text-right">Actions</p>
+        </div>
+        <ul className="divide-y divide-theme-border">
+          {filteredMembers.map((m) => (
+            <li key={m.id} className="grid grid-cols-1 gap-2 px-3 py-3 md:grid-cols-12 md:items-center">
+              <div className="md:col-span-4">
+                <p className="font-medium text-theme-text">{m.name?.trim() || m.email}</p>
+                {m.username ? <p className="text-xs text-theme-muted">@{m.username}</p> : null}
+              </div>
+              <p className="text-xs text-theme-muted md:col-span-2">{m.email}</p>
+              <div className="md:col-span-2">
+                <span className="rounded-full bg-theme-subtle-hover px-2 py-0.5 text-caption text-theme-text">
+                  {m.isActive ? t("team_member_status_active") : t("team_member_status_passive")}
+                </span>
+              </div>
+              <div className="md:col-span-2">
+                <span className="rounded-full bg-theme-subtle-hover px-2 py-0.5 text-caption text-theme-text">
+                  {m.role === "ADMIN" ? t("team_role_owner") : t("team_role_member")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 md:col-span-2 md:justify-end">
+                <p className="text-xs text-theme-muted">
+                  {formatDateTime24(m.createdAtIso, lang)}
+                </p>
+                {canManage ? (
+                  <Link
+                    href={`/team/members/${encodeURIComponent(m.userId)}`}
+                    className="rounded-xl px-3 py-1.5 text-xs text-[var(--ui-accent-contrast)]"
+                    style={{ backgroundColor: "var(--ui-accent)" }}
+                  >
+                    {t("team_member_edit_button")}
+                  </Link>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

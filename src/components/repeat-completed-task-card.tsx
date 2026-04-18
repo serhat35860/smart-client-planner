@@ -107,7 +107,7 @@ export function RepeatCompletedTaskCard({
           style={noteSurfaceBgStyle(color)}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-semibold text-theme-text">{title}</h3>
+            <h3 className="min-w-0 flex-1 break-words font-semibold text-theme-text">{title}</h3>
             <span className={cn("rounded-full px-2 py-1 text-caption font-medium", priorityClass)}>
               {priority === "HIGH" ? t("priority_high") : priority === "MEDIUM" ? t("priority_medium") : t("priority_low")}
             </span>

@@ -1,38 +1,44 @@
-import { Prisma } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
   additionalContactsForPrisma,
   parseAdditionalContacts,
   sanitizeAdditionalContactsInput
 } from "./client-additional-contacts";
+import { Prisma } from "@prisma/client";
 
 describe("parseAdditionalContacts", () => {
-  it("returns empty for non-array", () => {
+  it("returns empty for null and non-array", () => {
     expect(parseAdditionalContacts(null)).toEqual([]);
+    expect(parseAdditionalContacts(undefined)).toEqual([]);
     expect(parseAdditionalContacts({})).toEqual([]);
+    expect(parseAdditionalContacts("x")).toEqual([]);
   });
 
-  it("parses valid rows and caps at 20", () => {
-    const rows = Array.from({ length: 25 }, (_, i) => ({
-      name: `N${i}`,
-      phone: `P${i}`,
-      jobTitle: i === 0 ? "  Lead  " : undefined
-    }));
-    const out = parseAdditionalContacts(rows);
-    expect(out).toHaveLength(20);
-    expect(out[0]?.jobTitle).toBe("Lead");
-  });
-
-  it("skips invalid items", () => {
+  it("keeps valid rows and trims", () => {
     expect(
-      parseAdditionalContacts([{ name: "", phone: "1" }, { name: "A", phone: "B" }])
-    ).toEqual([{ name: "A", phone: "B" }]);
+      parseAdditionalContacts([
+        { name: "  A  ", phone: " 1 ", jobTitle: "  Müdür " },
+        { name: "", phone: "2" },
+        { name: "B", phone: "3" },
+        { name: "C" }
+      ])
+    ).toEqual([
+      { name: "A", phone: "1", jobTitle: "Müdür" },
+      { name: "B", phone: "3" },
+      { name: "C" }
+    ]);
+  });
+
+  it("caps at 20 entries", () => {
+    const rows = Array.from({ length: 25 }, (_, i) => ({ name: `n${i}`, phone: `p${i}` }));
+    expect(parseAdditionalContacts(rows)).toHaveLength(20);
   });
 });
 
 describe("sanitizeAdditionalContactsInput", () => {
   it("returns empty for non-array", () => {
-    expect(sanitizeAdditionalContactsInput(undefined)).toEqual([]);
+    expect(sanitizeAdditionalContactsInput(null)).toEqual([]);
+    expect(sanitizeAdditionalContactsInput("[]")).toEqual([]);
   });
 });
 
@@ -41,8 +47,13 @@ describe("additionalContactsForPrisma", () => {
     expect(additionalContactsForPrisma([])).toBe(Prisma.DbNull);
   });
 
-  it("returns array JSON value when non-empty", () => {
-    const v = additionalContactsForPrisma([{ name: "A", phone: "1" }]);
-    expect(v).toEqual([{ name: "A", phone: "1" }]);
+  it("serializes non-empty list", () => {
+    const v = additionalContactsForPrisma([{ name: "a", phone: "b" }]);
+    expect(v).toEqual([{ name: "a", phone: "b" }]);
+  });
+
+  it("allows contact-less extra contact", () => {
+    const v = additionalContactsForPrisma([{ name: "a" }]);
+    expect(v).toEqual([{ name: "a" }]);
   });
 });

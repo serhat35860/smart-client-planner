@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { canManageWorkspace, requireWorkspace } from "@/lib/workspace";
+import { requireWorkspace } from "@/lib/workspace";
 import { AuditEventType } from "@/lib/audit-event-types";
 import { logAuditEvent } from "@/lib/audit-log";
 import { getClientIp } from "@/lib/rate-limit";
@@ -26,7 +26,7 @@ type RouteCtx = { params: Promise<{ userId: string }> };
 export async function GET(_req: Request, ctx: RouteCtx) {
   const wctx = await requireWorkspace();
   if (!wctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageWorkspace(wctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (wctx.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { userId: targetUserId } = await ctx.params;
   if (!targetUserId) return NextResponse.json({ error: "Invalid" }, { status: 400 });
@@ -50,7 +50,7 @@ export async function GET(_req: Request, ctx: RouteCtx) {
 export async function PATCH(req: Request, ctx: RouteCtx) {
   const wctx = await requireWorkspace();
   if (!wctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageWorkspace(wctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (wctx.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const ip = getClientIp(req);
   const userAgent = req.headers.get("user-agent");
 
@@ -170,7 +170,7 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
 export async function DELETE(_req: Request, ctx: RouteCtx) {
   const wctx = await requireWorkspace();
   if (!wctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageWorkspace(wctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (wctx.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { userId: targetUserId } = await ctx.params;
   if (!targetUserId) return NextResponse.json({ error: "Invalid" }, { status: 400 });

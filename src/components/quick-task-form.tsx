@@ -37,6 +37,7 @@ export function QuickTaskForm({
 }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [deadline, setDeadline] = useState(() => nowDateTimeLocalString());
   const [priority, setPriority] = useState<Priority>("MEDIUM");
   const [color, setColor] = useState("yellow");
@@ -82,6 +83,7 @@ export function QuickTaskForm({
       body: JSON.stringify({
         clientId: selectedClientId || null,
         title: title.trim(),
+        content: content.trim() || null,
         deadline: new Date(deadline).toISOString(),
         priority,
         color,
@@ -93,6 +95,7 @@ export function QuickTaskForm({
     setLoading(false);
     if (!res.ok) return;
     setTitle("");
+    setContent("");
     setDeadline(nowDateTimeLocalString());
     setPriority("MEDIUM");
     setColor("yellow");
@@ -107,15 +110,24 @@ export function QuickTaskForm({
   return (
     <form
       onSubmit={submit}
-      className={cn("rounded-2xl bg-theme-card p-4 shadow-sm", stickyFooter ? "flex h-full min-h-0 flex-col" : "space-y-2")}
+      className={cn(
+        "rounded-2xl bg-theme-card p-4 shadow-sm",
+        stickyFooter ? "flex h-full min-h-0 max-h-full flex-col overflow-hidden" : "space-y-2"
+      )}
     >
-      <div className={cn(stickyFooter ? "min-h-0 flex-1 space-y-2 overflow-y-auto pr-1" : "space-y-2")}>
+      <div className={cn(stickyFooter ? "min-h-0 basis-0 flex-1 space-y-2 overflow-y-auto pr-1" : "space-y-2")}>
         <input
           placeholder={t("task_title_placeholder")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full"
           required
+        />
+        <textarea
+          placeholder={t("task_content_placeholder")}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          className="h-24 w-full resize-y"
         />
         <div className="block text-body text-theme-text">
           <span className={cn("mb-2 block", sectionHeadingsClass && cn("font-semibold text-theme-text", sectionHeadingsClass))}>

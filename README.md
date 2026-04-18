@@ -2,8 +2,7 @@
 
 Modern, scalable, sticky-note inspired mini CRM for tracking customer interactions, follow-ups, and tasks.
 
-**Türkçe kurulum özeti:** [KURULUM.md](./KURULUM.md)  
-**Türkçe detaylı işletim tarifi (sürüm, EXE, GitHub, CI):** [docs/detayli-tarif.md](./docs/detayli-tarif.md)
+**Türkçe kurulum özeti:** [KURULUM.md](./KURULUM.md)
 
 ## Tech Stack
 

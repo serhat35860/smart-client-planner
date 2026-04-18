@@ -136,6 +136,7 @@ model WorkspaceInvite {
 
 model Client {
   id              String       @id @default(cuid())
+  fileNumber      String?
   companyName     String
   contactPerson   String
   phone           String
@@ -158,6 +159,7 @@ model Client {
   tasks     Task[]
 
   @@index([workspaceId, companyName])
+  @@unique([workspaceId, fileNumber])
   @@index([createdByUserId])
   @@index([updatedByUserId])
 }
@@ -195,6 +197,7 @@ model Note {
 model Task {
   id                  String       @id @default(cuid())
   title               String
+  content             String?
   deadline            DateTime
   remindBeforeMinutes Int?
   priority            TaskPriority @default(MEDIUM)

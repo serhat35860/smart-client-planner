@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
   additionalContactsForPrisma,
   sanitizeAdditionalContactsInput
 } from "@/lib/client-additional-contacts";
+import { nextClientFileNumber } from "@/lib/client-file-number";
 import { AuditEventType } from "@/lib/audit-event-types";
 import { canManageWorkspace, requireWorkspace } from "@/lib/workspace";
 import { logWorkspaceActivity } from "@/lib/workspace-audit";
@@ -12,7 +14,7 @@ import { readJsonBody } from "@/lib/read-json";
 
 const contactPair = z.object({
   name: z.string().max(200),
-  phone: z.string().max(80),
+  phone: z.string().max(80).optional(),
   jobTitle: z.string().max(120).optional()
 });
 
@@ -34,13 +36,23 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const q = (url.searchParams.get("q") ?? "").trim();
   const mentionedUserId = (url.searchParams.get("mentionedUserId") ?? "").trim() || null;
+  const yearQ = /^\d{4}$/.test(q) ? Number.parseInt(q, 10) : null;
+  const yearStart = yearQ ? new Date(Date.UTC(yearQ, 0, 1, 0, 0, 0)) : null;
+  const yearEnd = yearQ ? new Date(Date.UTC(yearQ + 1, 0, 1, 0, 0, 0)) : null;
 
   const clients = await prisma.client.findMany({
     where: {
       workspaceId: ctx.workspace.id,
       ...(q
         ? {
-            OR: [{ companyName: { contains: q } }, { contactPerson: { contains: q } }]
+            OR: [
+              { companyName: { contains: q } },
+              { contactPerson: { contains: q } },
+              { fileNumber: { contains: q } },
+              ...(yearQ && yearStart && yearEnd
+                ? [{ createdAt: { gte: yearStart, lt: yearEnd } }, { fileNumber: { startsWith: `${yearQ}-` } }]
+                : [])
+            ]
           }
         : {}),
       ...(mentionedUserId
@@ -69,19 +81,34 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   const { additionalContacts: extraRaw, ...rest } = parsed.data;
   const extra = sanitizeAdditionalContactsInput(extraRaw ?? []);
-  const client = await prisma.client.create({
-    data: {
-      ...rest,
-      additionalContacts: additionalContactsForPrisma(extra),
-      workspaceId: ctx.workspace.id,
-      createdByUserId: ctx.user.id
+  let client: { id: string; companyName: string; fileNumber: string | null };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      client = await prisma.$transaction(async (tx) => {
+        const fileNumber = await nextClientFileNumber(tx, ctx.workspace.id);
+        return tx.client.create({
+          data: {
+            ...rest,
+            fileNumber,
+            additionalContacts: additionalContactsForPrisma(extra),
+            workspaceId: ctx.workspace.id,
+            createdByUserId: ctx.user.id
+          },
+          select: { id: true, companyName: true, fileNumber: true }
+        });
+      });
+      break;
+    } catch (error) {
+      const duplicate = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+      if (!duplicate || attempt === 2) throw error;
     }
-  });
+  }
+  if (!client!) return NextResponse.json({ error: "Could not create client" }, { status: 500 });
   await logWorkspaceActivity(ctx, {
     eventType: AuditEventType.CLIENT_CREATED,
     entityType: "client",
-    entityId: client.id,
-    metaJson: { companyName: client.companyName },
+    entityId: client!.id,
+    metaJson: { companyName: client!.companyName, fileNumber: client!.fileNumber },
     req
   });
   return NextResponse.json(client, { status: 201 });

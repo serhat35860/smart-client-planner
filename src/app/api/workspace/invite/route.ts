@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { canManageWorkspace, requireWorkspace } from "@/lib/workspace";
+import { requireWorkspace } from "@/lib/workspace";
 import { AuditEventType } from "@/lib/audit-event-types";
 import { logAuditEvent } from "@/lib/audit-log";
 import { getClientIp } from "@/lib/rate-limit";
@@ -11,7 +11,7 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 export async function POST(req: Request) {
   const ctx = await requireWorkspace();
   if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canManageWorkspace(ctx.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (ctx.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const token = randomBytes(24).toString("hex");
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
